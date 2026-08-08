@@ -20,6 +20,9 @@ frontend-member/node_modules/
 frontend-member/.next/
 frontend-member/out/
 
+# Electron 桌面客户端
+node_modules/
+
 # 数据与日志
 data/
 *.db

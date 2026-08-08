@@ -2,6 +2,7 @@
 
 // 注册中心状态 hook:15s 轮询 /api/peers + approve/join 操作
 import { useCallback, useEffect, useState } from "react";
+import { getApiBase } from "@/lib/api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 

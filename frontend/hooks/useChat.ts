@@ -3,6 +3,7 @@
 // SSE 聊天 hook:迁移自 console.html 的 sendMessage + renderDag 逻辑
 // POST /api/chat → ReadableStream 解析 plan/message/task_*/done 事件
 import { useCallback, useRef, useState } from "react";
+import { getApiBase } from "@/lib/api";
 
 export type TaskStatus =
   | "pending"
@@ -32,7 +33,7 @@ export interface ChatMessage {
   content: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = getApiBase();
 
 export function statusColor(s: TaskStatus): string {
   const m: Record<string, string> = {

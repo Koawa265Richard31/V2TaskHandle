@@ -2,6 +2,7 @@
 
 // Agent 列表 hook:迁移自 console.html 的 loadAgents/loadAgentsList 逻辑
 import { useCallback, useEffect, useState } from "react";
+import { getApiBase } from "@/lib/api";
 
 export interface AgentInfo {
   name: string;
@@ -10,7 +11,7 @@ export interface AgentInfo {
   status?: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = getApiBase();
 
 export function useAgents() {
   const [agents, setAgents] = useState<AgentInfo[]>([]);

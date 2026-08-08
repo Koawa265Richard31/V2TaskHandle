@@ -1,0 +1,41 @@
+{
+  "name": "task-orchestrator-desktop",
+  "version": "0.1.0",
+  "description": "Task Orchestrator 桌面客户端",
+  "main": "electron/main.js",
+  "scripts": {
+    "build:frontend": "cd frontend && npm run build",
+    "start": "electron .",
+    "dev": "npm run build:frontend && electron .",
+    "dist": "electron-builder",
+    "pack": "electron-builder --dir"
+  },
+  "author": "Koawa265Richard31",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.taskorchestrator.desktop",
+    "productName": "TaskOrchestrator",
+    "files": [
+      "electron/**/*",
+      "frontend/out/**/*",
+      "backend/**/*",
+      "src/**/*",
+      "pyproject.toml",
+      ".env.example"
+    ],
+    "extraResources": [
+      {
+        "from": "frontend/out",
+        "to": "frontend/out",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": ["nsis", "portable"]
+    }
+  }
+}

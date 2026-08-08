@@ -532,3 +532,15 @@ async def api_approve(body: ApproveBody):
         return {"ok": False, "error": str(exc)}
     finally:
         await client.close()
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    settings = get_settings()
+    uvicorn.run(
+        app,
+        host=settings.bind_host,
+        port=settings.api_port,
+        log_level=settings.log_level.lower(),
+    )

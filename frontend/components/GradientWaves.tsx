@@ -115,15 +115,17 @@ export default function GradientWaves() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const canvasEl = canvasRef.current;
+    if (!canvasEl) return;
+    const canvas: HTMLCanvasElement = canvasEl;
 
-    const gl = canvas.getContext("webgl2", {
+    const ctx = canvas.getContext("webgl2", {
       alpha: true,
       premultipliedAlpha: true,
       antialias: false,
     });
-    if (!gl) return;
+    if (!ctx) return;
+    const gl: WebGL2RenderingContext = ctx;
 
     function compile(type: number, src: string): WebGLShader | null {
       const sh = gl.createShader(type);
