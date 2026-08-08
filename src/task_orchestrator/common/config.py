@@ -96,6 +96,8 @@ class Settings(BaseSettings):
     instance_description: str = ""
     # 组长 id(组员用它发加入团队申请;leader 不需要)
     leader_id: str = ""
+    # 组长定时刷新已批准组员缓存的间隔(秒);<=0 表示关闭定时刷新
+    peer_refresh_seconds: float = 15.0
 
     # ── 邮箱(可选) ──────────────────────────────────────────────
     smtp_host: str = ""

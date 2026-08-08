@@ -36,10 +36,14 @@ _instance_peer_id: int | None = None
 # 用于 waiting_approval 任务的审批/改策略重跑(前端操作后重新 submit)
 _sessions: dict[str, dict] = {}
 
+# 组长定时刷新已批准组员的后台任务控制
+_refresh_stop: asyncio.Event = asyncio.Event()
+_refresh_task: asyncio.Task | None = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """启动时向注册中心登记本实例;组长则拉取一次已批准组员。"""
+    """启动时向注册中心登记本实例;组长则拉取一次已批准组员并启动定时刷新。"""
     global _instance_peer_id
     settings = get_settings()
     if settings.registry_url:
@@ -50,9 +54,12 @@ async def lifespan(app: FastAPI):
                 _instance_peer_id = peer_id
                 if settings.a2a_role == "leader":
                     await _refresh_approved(settings)
+                    if settings.peer_refresh_seconds > 0:
+                        _start_refresh_loop(settings.peer_refresh_seconds, settings)
         except Exception as exc:
             logger.warning("启动注册失败", extra={"error": str(exc)})
     yield
+    _stop_refresh_loop()
     _instance_peer_id = None
 
 
@@ -71,14 +78,16 @@ class ChatRequestBody(BaseModel):
     session_id: str | None = None
 
 
-def build_registry(model=None, role: str = "leader", dynamic_peers: bool = False) -> AgentRegistry:
+def build_registry(model=None, role: str = "leader", dynamic_peers: bool = False,
+                   settings=None) -> AgentRegistry:
     """构造 Agent 注册表。
 
     role=leader:注册 A2A 适配器(可向组员下发任务)。
     role=member:不注册 A2A 适配器(结构上禁止向其他 agent 下发)。
     dynamic_peers=True:从注册中心拉取已批准组员,动态注册为 A2AAdapter(组长)。
+    settings 可显式注入(测试用),默认取进程级 get_settings()。
     """
-    settings = get_settings()
+    settings = settings or get_settings()
     registry = AgentRegistry()
 
     # 仅组长可向组员下发任务
@@ -417,6 +426,38 @@ async def _refresh_approved(settings=None) -> list[dict]:
     finally:
         await client.close()
     return _approved_peers_cache
+
+
+def _start_refresh_loop(interval: float, settings=None) -> None:
+    """组长:启动后台定时刷新任务。仅在 lifespan 中 role=leader 且 interval>0 时调用。"""
+    global _refresh_task
+    _refresh_stop.clear()
+    _refresh_task = asyncio.create_task(_peer_refresh_loop(interval, settings))
+
+
+def _stop_refresh_loop() -> None:
+    """停止定时刷新任务(lifespan 退出时调用)。"""
+    global _refresh_task
+    _refresh_stop.set()
+    if _refresh_task is not None:
+        _refresh_task.cancel()
+        _refresh_task = None
+
+
+async def _peer_refresh_loop(interval: float, settings=None) -> None:
+    """每 interval 秒刷新一次已批准组员缓存;收到停止信号立即退出。"""
+    settings = settings or get_settings()
+    while True:
+        try:
+            # wait_for:interval 到点 → TimeoutError → 刷新;stop 置位 → 立即返回
+            await asyncio.wait_for(_refresh_stop.wait(), timeout=interval)
+            return
+        except asyncio.TimeoutError:
+            pass
+        try:
+            await _refresh_approved(settings)
+        except Exception:
+            logger.exception("定时刷新已批准组员失败")
 
 
 @app.get("/api/peers")
