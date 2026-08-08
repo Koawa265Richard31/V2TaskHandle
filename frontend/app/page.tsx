@@ -11,10 +11,13 @@ import DagPanel from "@/components/DagPanel";
 import SettingsDrawer from "@/components/SettingsDrawer";
 import { useChat } from "@/hooks/useChat";
 import { useAgents } from "@/hooks/useAgents";
+import { useRegistry } from "@/hooks/useRegistry";
+import TeamPanel from "@/components/TeamPanel";
 
 export default function HomePage() {
   const { messages, plan, streaming, error, sendMessage, newSession } = useChat();
   const { agents, cloudAgents, localAgents, loading, refresh } = useAgents();
+  const registry = useRegistry();
   const [activeView, setActiveView] = useState("chat");
   const [theme, setThemeState] = useState<string>("dark");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -76,6 +79,14 @@ export default function HomePage() {
             <h2 className="font-headline-md text-headline-md text-on-surface">History</h2>
             <p className="mt-2 text-sm text-on-surface-variant">会话历史(待实现)</p>
           </div>
+        )}
+        {activeView === "team" && (
+          <TeamPanel
+            status={registry.status}
+            loading={registry.loading}
+            onApprove={registry.approve}
+            onJoin={registry.join}
+          />
         )}
 
         {activeView === "chat" && (

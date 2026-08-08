@@ -209,6 +209,20 @@ export default function Sidebar({
           )}
         </div>
 
+        {/* Team */}
+        <a
+          onClick={() => onSwitchView("team")}
+          className={navItemCls(activeView === "team")}
+          style={
+            activeView === "team"
+              ? { borderLeft: "4px solid var(--primary)", background: "var(--primary-faint)" }
+              : { borderLeft: "4px solid transparent" }
+          }
+        >
+          <span className="material-symbols-outlined">groups</span>
+          {!collapsed && <span className="font-headline-sm text-sm">Team</span>}
+        </a>
+
         {/* History */}
         <a
           onClick={() => onSwitchView("history")}
