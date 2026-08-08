@@ -1,137 +1,242 @@
 @import "tailwindcss";
 
-/* ── 主题 token:黑紫(暗) / 蓝白(亮) ───────────────────────── */
+/* ── MD3 主题 token:暗色黑紫 / 亮色蓝白(与 console.html 完全一致) ─────── */
+
 :root,
 [data-theme="dark"] {
-  --color-bg: #121318;
-  --color-surface: #1a1b21;
-  --color-surface-alt: #1e1f25;
-  --color-surface-hi: #292a2f;
-  --color-border: #2a3040;
-  --color-border-light: #3a3f55;
-  --color-text: #e3e1e9;
-  --color-text-dim: #c7c4d7;
-  --color-text-muted: #908fa0;
-
-  /* 主色:统一黑紫 */
-  --primary: #a99ff0;
-  --primary-soft: #8b7fd8;
-  --primary-deep: #4a3a7a;
+  --error-container: #93000a; --on-secondary-fixed-variant: #3a2f7a; --inverse-primary: #494bd6;
+  --secondary-fixed-dim: #8b7fd8; --primary-fixed: #e1e0ff; --on-background: #e3e1e9;
+  --on-tertiary-fixed-variant: #3a2f7a; --tertiary-fixed: #a99ff0; --outline-variant: #464554;
+  --on-primary-container: #0d0096; --primary-fixed-dim: #c0c1ff; --on-secondary-container: #b9aef2;
+  --on-tertiary: #e8e6ff; --tertiary-fixed-dim: #6d5bd0; --on-error-container: #ffdad6;
+  --surface-container-highest: #34343a; --secondary-container: #4a3a7a; --primary: #a99ff0;
+  --surface-variant: #34343a; --on-surface: #e3e1e9; --on-primary-fixed: #07006c; --tertiary: #8b7fd8;
+  --on-primary: #1000a9; --surface-tint: #c0c1ff; --on-tertiary-container: #1e174f; --on-error: #690005;
+  --on-secondary-fixed: #110a35; --surface: #121318; --inverse-surface: #e3e1e9; --primary-container: #8083ff;
+  --surface-dim: #121318; --surface-container-high: #292a2f; --on-surface-variant: #c7c4d7;
+  --surface-bright: #38393f; --error: #ffb4ab; --outline: #908fa0; --tertiary-container: #4a3a7a;
+  --surface-container-low: #1a1b21; --on-secondary: #b9aef2; --secondary: #a99ff0; --background: #121318;
+  --surface-container: #1e1f25; --secondary-fixed: #f0dbff; --surface-container-lowest: #0d0e13;
+  --on-tertiary-fixed: #110a35; --inverse-on-surface: #2f3036; --on-primary-fixed-variant: #2f2ebe;
+  --border: #2a3040; --glass-bg: rgba(255, 255, 255, 0.03); --glow: rgba(109, 91, 208, 0.35);
+  --glow-core: rgba(139, 92, 246, 0.55); --glow-soft: rgba(59, 130, 246, 0.15); --line: #000000;
+  --shiny-base: rgba(139, 92, 246, 0.45); --shiny-highlight: rgba(196, 181, 253, 1);
+  --ripple: radial-gradient(circle at center, rgba(74, 58, 122, 0.08) 0%, transparent 70%);
   --primary-faint: rgba(74, 58, 122, 0.25);
-
-  /* 状态 */
-  --color-success: #34d399;
-  --color-warn: #f59e0b;
-  --color-error: #f87171;
-
-  /* 玻璃拟态 */
-  --glass-bg: rgba(255, 255, 255, 0.03);
-  --glass-border: #2a3040;
-  --glass-blur: 12px;
-
-  /* 背景波动(暗紫) */
-  --ripple: radial-gradient(circle at center, rgba(74, 58, 122, 0.10) 0%, transparent 70%);
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
 }
 
 [data-theme="light"] {
-  --color-bg: #f8fafc;
-  --color-surface: #ffffff;
-  --color-surface-alt: #f1f5f9;
-  --color-surface-hi: #e2e8f0;
-  --color-border: #cbd5e1;
-  --color-border-light: #94a3b8;
-  --color-text: #0f172a;
-  --color-text-dim: #475569;
-  --color-text-muted: #94a3b8;
-
-  /* 主色:统一天蓝 */
-  --primary: #0ea5e9;
-  --primary-soft: #38bdf8;
-  --primary-deep: #075985;
+  --error-container: #ffdad6; --on-secondary-fixed-variant: #2f2ebe; --inverse-primary: #494bd6;
+  --secondary-fixed-dim: #b9aef2; --primary-fixed: #a99ff0; --on-background: #0f172a;
+  --on-tertiary-fixed-variant: #2f2ebe; --tertiary-fixed: #7dd3fc; --outline-variant: #cbd5e1;
+  --on-primary-container: #0c4a6e; --primary-fixed-dim: #7dd3fc; --on-secondary-container: #0c4a6e;
+  --on-tertiary: #075985; --tertiary-fixed-dim: #7dd3fc; --on-error-container: #7f1d1d;
+  --surface-container-highest: #f1f5f9; --secondary-container: #e0f2fe; --primary: #0ea5e9;
+  --surface-variant: #f1f5f9; --on-surface: #0f172a; --on-primary-fixed: #0c4a6e; --tertiary: #38bdf8;
+  --on-primary: #ffffff; --surface-tint: #0ea5e9; --on-tertiary-container: #0c4a6e; --on-error: #ffffff;
+  --on-secondary-fixed: #0c4a6e; --surface: #ffffff; --inverse-surface: #0f172a; --primary-container: #e0f2fe;
+  --surface-dim: #f8fafc; --surface-container-high: #e2e8f0; --on-surface-variant: #475569;
+  --surface-bright: #ffffff; --error: #ef4444; --outline: #94a3b8; --tertiary-container: #bae6fd;
+  --surface-container-low: #f8fafc; --on-secondary: #075985; --secondary: #38bdf8; --background: #ffffff;
+  --surface-container: #f1f5f9; --secondary-fixed: #e0f2fe; --surface-container-lowest: #ffffff;
+  --on-tertiary-fixed: #0c4a6e; --inverse-on-surface: #f8fafc; --on-primary-fixed-variant: #0c4a6e;
+  --border: #cbd5e1; --glass-bg: rgba(255, 255, 255, 0.6); --glow: rgba(14, 165, 233, 0.3);
+  --glow-core: rgba(14, 165, 233, 0.45); --glow-soft: rgba(59, 130, 246, 0.12); --line: #ffffff;
+  --shiny-base: rgba(2, 132, 199, 0.9); --shiny-highlight: rgba(0, 0, 0, 1);
+  --ripple: radial-gradient(circle at center, rgba(14, 165, 233, 0.08) 0%, transparent 70%);
   --primary-faint: rgba(14, 165, 233, 0.15);
-
-  --color-success: #10b981;
-  --color-warn: #f59e0b;
-  --color-error: #ef4444;
-
-  --glass-bg: rgba(255, 255, 255, 0.6);
-  --glass-border: #cbd5e1;
-  --glass-blur: 12px;
-
-  --ripple: radial-gradient(circle at center, rgba(14, 165, 233, 0.10) 0%, transparent 70%);
 }
 
+/* ── Tailwind 4 theme:把 MD3 token 映射为可用类名(与 console.html 的 CDN 配置一致) ── */
+@theme inline {
+  /* 颜色 token → --color-* */
+  --color-error-container: var(--error-container);
+  --color-on-secondary-fixed-variant: var(--on-secondary-fixed-variant);
+  --color-inverse-primary: var(--inverse-primary);
+  --color-secondary-fixed-dim: var(--secondary-fixed-dim);
+  --color-primary-fixed: var(--primary-fixed);
+  --color-on-background: var(--on-background);
+  --color-on-tertiary-fixed-variant: var(--on-tertiary-fixed-variant);
+  --color-tertiary-fixed: var(--tertiary-fixed);
+  --color-outline-variant: var(--outline-variant);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-primary-fixed-dim: var(--primary-fixed-dim);
+  --color-on-secondary-container: var(--on-secondary-container);
+  --color-on-tertiary: var(--on-tertiary);
+  --color-tertiary-fixed-dim: var(--tertiary-fixed-dim);
+  --color-on-error-container: var(--on-error-container);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-secondary-container: var(--secondary-container);
+  --color-primary: var(--primary);
+  --color-surface-variant: var(--surface-variant);
+  --color-on-surface: var(--on-surface);
+  --color-on-primary-fixed: var(--on-primary-fixed);
+  --color-tertiary: var(--tertiary);
+  --color-on-primary: var(--on-primary);
+  --color-surface-tint: var(--surface-tint);
+  --color-on-tertiary-container: var(--on-tertiary-container);
+  --color-on-error: var(--on-error);
+  --color-on-secondary-fixed: var(--on-secondary-fixed);
+  --color-surface: var(--surface);
+  --color-inverse-surface: var(--inverse-surface);
+  --color-primary-container: var(--primary-container);
+  --color-surface-dim: var(--surface-dim);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-surface-bright: var(--surface-bright);
+  --color-error: var(--error);
+  --color-outline: var(--outline);
+  --color-tertiary-container: var(--tertiary-container);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-on-secondary: var(--on-secondary);
+  --color-secondary: var(--secondary);
+  --color-background: var(--background);
+  --color-surface-container: var(--surface-container);
+  --color-secondary-fixed: var(--secondary-fixed);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-on-tertiary-fixed: var(--on-tertiary-fixed);
+  --color-inverse-on-surface: var(--inverse-on-surface);
+  --color-on-primary-fixed-variant: var(--on-primary-fixed-variant);
+  --color-border: var(--border);
+
+  /* 圆角 */
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+
+  /* 间距 scale */
+  --spacing-gutter: 16px;
+  --spacing-container-padding: 24px;
+  --spacing-node-gap: 40px;
+  --spacing-sidebar-width: 260px;
+  --spacing-unit: 4px;
+
+  /* 字体族 */
+  --font-body-md: Geist, sans-serif;
+  --font-display-lg: "Hanken Grotesk", sans-serif;
+  --font-body-lg: Geist, sans-serif;
+  --font-code-sm: "JetBrains Mono", monospace;
+  --font-headline-md: "Hanken Grotesk", sans-serif;
+  --font-headline-sm: "Hanken Grotesk", sans-serif;
+
+  /* 字号 */
+  --text-body-md: 14px;
+  --text-body-md--line-height: 20px;
+  --text-body-md--font-weight: 400;
+  --text-display-lg: 48px;
+  --text-display-lg--line-height: 56px;
+  --text-display-lg--letter-spacing: -0.02em;
+  --text-display-lg--font-weight: 700;
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 24px;
+  --text-body-lg--font-weight: 400;
+  --text-code-sm: 12px;
+  --text-code-sm--line-height: 16px;
+  --text-code-sm--font-weight: 500;
+  --text-headline-md: 24px;
+  --text-headline-md--line-height: 32px;
+  --text-headline-md--letter-spacing: -0.01em;
+  --text-headline-md--font-weight: 600;
+  --text-headline-sm: 18px;
+  --text-headline-sm--line-height: 24px;
+  --text-headline-sm--font-weight: 600;
+}
+
+/* ── 基础样式 ─────────────────────────────────── */
 * {
   box-sizing: border-box;
 }
 
 body {
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  background-color: var(--surface-dim);
+  color: var(--on-surface);
+  overflow: hidden;
   transition: background-color 0.3s ease;
-}
-
-/* 终端感等宽字体(标题/工单号/状态) */
-.font-console {
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.01em;
+  font-family: Geist, "Hanken Grotesk", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* 玻璃面板 */
 .glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.03));
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
   transition: all 0.3s ease;
+}
+
+.glass-accent {
+  background: color-mix(in srgb, var(--accent, var(--primary)) 10%, transparent);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.glow-active {
+  box-shadow: 0 0 12px 2px var(--glow, rgba(109, 91, 208, 0.35));
+  border-color: var(--tertiary);
 }
 
 /* 背景水面波动 */
 .bg-ripple {
-  position: absolute;
+  position: fixed;
   width: 150vw;
   height: 150vh;
   top: -25vh;
   left: -25vw;
-  background: var(--ripple);
+  background: var(--ripple, radial-gradient(circle at center, rgba(74, 58, 122, 0.08) 0%, transparent 70%));
   animation: ripple 15s ease-in-out infinite;
   z-index: -1;
   pointer-events: none;
 }
 @keyframes ripple {
-  0% { transform: scale(1); opacity: 0.3; }
-  50% { transform: scale(1.1); opacity: 0.6; }
-  100% { transform: scale(1); opacity: 0.3; }
+  0% { transform: scale(1); opacity: 0.2; }
+  50% { transform: scale(1.1); opacity: 0.4; }
+  100% { transform: scale(1); opacity: 0.2; }
 }
+
+/* 打字光标 */
+.typing-cursor::after {
+  content: "▌";
+  display: inline-block;
+  animation: blink 1s step-end infinite;
+  color: var(--primary);
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
 /* 细滚动条 */
 .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
-.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: var(--color-border-light); }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: var(--outline-variant); }
 
-@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
-.typing-cursor::after { content: "▊"; animation: blink 1s infinite; color: var(--primary); }
-
+/* 动画 */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 .animate-in { animation: fadeIn 0.25s ease-out; }
 
+/* ShinyText:光泽扫过 */
+@keyframes shine {
+  0% { background-position: 100% 50%; }
+  100% { background-position: -100% 50%; }
+}
+.shiny-text {
+  color: var(--shiny-base, rgba(255, 255, 255, 0.5)) !important;
+  background: linear-gradient(120deg,
+    transparent 30%,
+    var(--shiny-highlight, rgba(255, 255, 255, 0.9)) 50%,
+    transparent 70%);
+  background-size: 300% 100%;
+  background-position: 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shine 4s ease-in-out infinite;
+}
+
 /* 状态点呼吸 */
-@keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 .agent-live-dot { animation: pulseDot 2.4s ease-in-out infinite; }
 
-/* DAG 节点扫描线(执行中) */
+/* DAG 节点扫描线 */
 @keyframes scanLine { from { background-position: 0 0; } to { background-position: 0 12px; } }
 .scan-stripe {
   background-image: linear-gradient(to bottom, transparent 0, transparent 6px, rgba(255,255,255,0.04) 6px, rgba(255,255,255,0.04) 12px);
   animation: scanLine 1.2s linear infinite;
 }
-
-/* 依赖连线动画 */
-@keyframes dashFlow { to { stroke-dashoffset: -8; } }
-.edge-flow { stroke-dasharray: 4 4; animation: dashFlow 1s linear infinite; }
