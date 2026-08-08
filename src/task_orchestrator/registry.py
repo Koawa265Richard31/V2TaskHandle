@@ -46,13 +46,14 @@ class AgentRegistry:
         return None
 
     def list_all(self) -> list[dict]:
-        """列出所有已注册的 Agent。"""
+        """列出所有已注册的 Agent(含可用状态)。"""
         result = []
         for name, adapter in self._adapters.items():
             result.append({
                 "name": name,
                 "type": adapter.agent_type,
                 "available": adapter.is_available,
+                "status": "online" if adapter.is_available else "offline",
             })
         return result
 
