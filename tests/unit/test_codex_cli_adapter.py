@@ -84,6 +84,76 @@ class TestApprovalMode:
         assert "--json" in cmd
         assert out in cmd
 
+    def test_build_command_uses_custom_sandbox(self, tmp_path):
+        """sandbox 参数应作为 -s 的值(而非硬编码 workspace-write)。"""
+        adapter = CodexCliAdapter(approval_mode="auto", sandbox="custom-sb")
+        cmd = adapter._build_command("任务", str(tmp_path / "out.txt"))
+        joined = " ".join(cmd)
+        assert "-s custom-sb" in joined
+        assert "workspace-write" not in joined
+
+    def test_resume_auto_carries_sandbox_and_policy(self, tmp_path, monkeypatch):
+        """auto 模式的 resume 也应带 -s 与 approval_policy,与 submit 一致。"""
+        import asyncio
+        import io
+
+        a = CodexCliAdapter(approval_mode="auto", codex_cmd=sys.executable,
+                            sandbox="custom-sb", workdir=str(tmp_path))
+        a._thread_ids["t1"] = "thread-xyz"
+        captured = {}
+
+        async def _fake_subprocess(*cmd, **kwargs):
+            captured["cmd"] = cmd
+            class _FakeProc:
+                stdout = io.BytesIO(b"")
+                stderr = None
+                returncode = 0
+                async def wait(self):
+                    return 0
+            return _FakeProc()
+
+        monkeypatch.setattr(asyncio, "create_subprocess_exec", _fake_subprocess)
+
+        async def _run():
+            await a.resume("t1", "继续执行")
+
+        asyncio.run(_run())
+        joined = " ".join(captured["cmd"])
+        assert "-s custom-sb" in joined
+        assert 'approval_policy="on-request"' in joined
+        assert "--dangerously-bypass" not in joined
+
+    def test_resume_ask_carries_untrusted(self, tmp_path, monkeypatch):
+        """ask 模式的 resume 应带 untrusted policy。"""
+        import asyncio
+        import io
+
+        a = CodexCliAdapter(approval_mode="ask", codex_cmd=sys.executable,
+                            sandbox="custom-sb", workdir=str(tmp_path))
+        a._thread_ids["t1"] = "thread-xyz"
+        captured = {}
+
+        async def _fake_subprocess(*cmd, **kwargs):
+            captured["cmd"] = cmd
+            class _FakeProc:
+                stdout = io.BytesIO(b"")
+                stderr = None
+                returncode = 0
+                async def wait(self):
+                    return 0
+            return _FakeProc()
+
+        monkeypatch.setattr(asyncio, "create_subprocess_exec", _fake_subprocess)
+
+        async def _run():
+            await a.resume("t1", "继续执行")
+
+        asyncio.run(_run())
+        joined = " ".join(captured["cmd"])
+        assert "-s custom-sb" in joined
+        assert 'approval_policy="untrusted"' in joined
+        assert "--dangerously-bypass" not in joined
+
 
 class TestJsonProgress:
     def _adapter(self, mode="auto"):
@@ -123,6 +193,34 @@ class TestJsonProgress:
     def test_ask_mode_no_detection_on_normal(self):
         a = self._adapter(mode="ask")
         a._consume_json_line("t1", '{"type":"item.completed","item":{"type":"agent_message","text":"已完成修改"}}'.encode("utf-8"))
+        assert a._waiting_approval.get("t1", False) is False
+
+    def test_ask_mode_detects_english_denial(self):
+        a = self._adapter(mode="ask")
+        a._consume_json_line("t1", '{"type":"item.completed","item":{"type":"agent_message","text":"permission denied: cannot write outside workspace"}}'.encode("utf-8"))
+        assert a._waiting_approval.get("t1") is True
+
+    def test_auto_mode_detects_waiting_approval(self):
+        """auto(on-request)模式下受限时也应触发 waiting_approval。"""
+        a = self._adapter(mode="auto")
+        a._consume_json_line("t1", '{"type":"item.completed","item":{"type":"agent_message","text":"无法写入该目录,需要审批"}}'.encode("utf-8"))
+        assert a._waiting_approval.get("t1") is True
+
+    def test_full_mode_does_not_detect_waiting_approval(self):
+        """full 模式绕过审批,不应触发 waiting_approval。"""
+        a = self._adapter(mode="full")
+        a._consume_json_line("t1", '{"type":"item.completed","item":{"type":"agent_message","text":"无法写入该目录,需要审批"}}'.encode("utf-8"))
+        assert a._waiting_approval.get("t1", False) is False
+
+    def test_structural_approval_requests_detected(self):
+        """codex 结构化 approval_requests 字段也应触发。"""
+        a = self._adapter(mode="auto")
+        a._consume_json_line("t1", '{"type":"item.completed","item":{"type":"agent_message","text":"请求写入","approval_requests":[{"id":"r1"}]}}'.encode("utf-8"))
+        assert a._waiting_approval.get("t1") is True
+
+    def test_normal_message_not_marked_waiting(self):
+        a = self._adapter(mode="auto")
+        a._consume_json_line("t1", '{"type":"item.completed","item":{"type":"agent_message","text":"已完成任务"}}'.encode("utf-8"))
         assert a._waiting_approval.get("t1", False) is False
 
 

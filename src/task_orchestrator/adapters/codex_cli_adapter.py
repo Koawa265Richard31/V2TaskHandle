@@ -113,6 +113,18 @@ class CodexCliAdapter(BaseAdapter):
     def is_available(self) -> bool:
         return bool(self.codex_cmd) and os.path.isfile(self.codex_cmd)
 
+    def _approval_args(self) -> list[str]:
+        """审批模式 → codex exec 参数。submit 与 resume 共用,保证两种调用一致。
+
+        - full → 完全绕过审批和 sandbox(不加 -s,用 bypass flag)
+        - auto → -s <sandbox> -c approval_policy="on-request"(自动执行,受限时请求)
+        - ask  → -s <sandbox> -c approval_policy="untrusted"(受限时拒绝并说明)
+        """
+        if self.approval_mode == "full":
+            return ["--dangerously-bypass-approvals-and-sandbox"]
+        policy = "on-request" if self.approval_mode == "auto" else "untrusted"
+        return ["-s", self.sandbox, "-c", f'approval_policy="{policy}"']
+
     def _build_command(self, description: str, out_file: str) -> list[str]:
         """构造 codex exec 命令。三层审批 → codex 参数。"""
         cmd = [
@@ -125,12 +137,7 @@ class CodexCliAdapter(BaseAdapter):
             # 路径找依赖会弹"找不到文件"),用 -C 让 codex 内部切根目录。
             "-C", self.workdir,
         ]
-        if self.approval_mode == "full":
-            cmd.append("--dangerously-bypass-approvals-and-sandbox")
-        elif self.approval_mode == "ask":
-            cmd += ["-s", "workspace-write", "-c", 'approval_policy="untrusted"']
-        else:  # auto
-            cmd += ["-s", "workspace-write", "-c", 'approval_policy="on-request"']
+        cmd += self._approval_args()
         if self.model:
             cmd += ["-m", self.model]
         cmd.append(description)
@@ -186,6 +193,33 @@ class CodexCliAdapter(BaseAdapter):
         logger.info("codex 任务已提交", extra={"task_id": task_id, "approval_mode": self.approval_mode})
         return task_id
 
+    # ask/auto 模式受限时,agent_message 含这些拒绝/待审批提示 → waiting_approval
+    # (full 模式绕过审批,不检测)。中英文都覆盖,因为 codex 可能用任一语言回复。
+    _APPROVAL_BLOCK_WORDS = (
+        # 中文
+        "无法", "不能写入", "不能创建", "不能修改", "无权", "审批", "权限不足",
+        "权限不够", "只读", "拒绝", "需要批准", "待审批", "请求授权", "需人工",
+        # 英文
+        "permission denied", "cannot write", "cannot create", "cannot modify",
+        "read-only", "not allowed", "requires approval", "need approval",
+        "awaiting approval", "requesting permission", "insufficient permission",
+        "approval required", "blocked by", "no permission",
+    )
+
+    def _is_approval_blocked(self, item: dict) -> bool:
+        """判断 codex item 是否表达"受限操作待人工介入"。
+
+        优先识别结构化 approval 请求字段;退回 agent_message 关键词检测。
+        """
+        # 结构化信号:item 含 approval_requests / 待审批标记
+        if item.get("approval_requests"):
+            return True
+        if item.get("type") == "approval_request":
+            return True
+        msg = item.get("text") or ""
+        low = msg.lower()
+        return any(k in msg or k in low for k in self._APPROVAL_BLOCK_WORDS)
+
     def _consume_json_line(self, task_id: str, line: bytes) -> None:
         """解析 codex --json 事件行,更新进度/审批状态。"""
         import json as _json
@@ -218,11 +252,9 @@ class CodexCliAdapter(BaseAdapter):
         # command_execution → 记录执行命令
         elif itype == "command_execution" and item.get("command"):
             self._progress[task_id] = f"执行命令: {item['command'][:200]}"
-        # ask 模式检测:agent_message 含受限拒绝说明 → waiting_approval
-        if itype == "agent_message" and self.approval_mode == "ask":
-            msg = item.get("text") or ""
-            if any(k in msg for k in ("无法", "不能写入", "审批", "权限", "只读", "拒绝")):
-                self._waiting_approval[task_id] = True
+        # ask/auto 模式检测受限:agent_message 或结构化 approval 信号 → waiting_approval
+        if self.approval_mode in ("ask", "auto") and self._is_approval_blocked(item):
+            self._waiting_approval[task_id] = True
 
     async def progress(self, external_id: str) -> str | None:
         """获取任务最新进度文本。"""
@@ -259,8 +291,7 @@ class CodexCliAdapter(BaseAdapter):
             self.codex_cmd, "exec", "resume",
             thread_id, prompt,
         ]
-        if self.approval_mode == "full":
-            cmd.append("--dangerously-bypass-approvals-and-sandbox")
+        cmd += self._approval_args()
         env = dict(os.environ)
         if self.codex_home:
             env["CODEX_HOME"] = self.codex_home
