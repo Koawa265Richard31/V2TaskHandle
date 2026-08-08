@@ -6,9 +6,17 @@ const { BackendManager } = require("./backend");
 
 const backend = new BackendManager();
 
-// 前端产物路径
+// 前端产物路径:打包后优先 resources/frontend/out,开发时用项目 frontend/out
 function frontendIndex() {
-  return path.join(__dirname, "..", "frontend", "out", "index.html");
+  const res = typeof process.resourcesPath !== "undefined" ? process.resourcesPath : null;
+  const candidates = [
+    res ? path.join(res, "frontend", "out", "index.html") : null,
+    path.join(__dirname, "..", "frontend", "out", "index.html"),
+  ].filter(Boolean);
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return candidates[0];
 }
 
 function createWindow() {
@@ -82,9 +90,10 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-// 启动时自动拉起后端(默认组长角色)
+// 启动时自动拉起后端(默认组长角色,可用命令行 --role=leader|member 覆盖)
 app.whenReady().then(async () => {
-  const role = process.env.PTA_DEFAULT_ROLE || "leader";
+  const argRole = process.argv.find((a) => a.startsWith("--role="));
+  const role = argRole ? argRole.split("=")[1] : process.env.PTA_DEFAULT_ROLE || "leader";
   await backend.start(role);
   broadcastStatus();
 });

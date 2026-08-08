@@ -32,6 +32,15 @@
         "from": "frontend/out",
         "to": "frontend/out",
         "filter": ["**/*"]
+      },
+      {
+        "from": "src",
+        "to": "src",
+        "filter": ["**/*.py"]
+      },
+      {
+        "from": "pyproject.toml",
+        "to": "pyproject.toml"
       }
     ],
     "win": {

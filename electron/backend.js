@@ -3,13 +3,23 @@ const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 
-const PROJECT_ROOT = path.join(__dirname, "..");
+// 后端运行根目录:打包后是 resources(真实文件,extraResources 复制 src);开发时是项目根
+const PROJECT_ROOT =
+  (typeof process.resourcesPath !== "undefined" && process.resourcesPath && fs.existsSync(path.join(process.resourcesPath, "src")))
+    ? process.resourcesPath
+    : path.join(__dirname, "..");
 
-// 找 python:优先 .venv,回退系统 python
+// 可能的 Python 位置(打包后 __dirname 是 resources/app.asar/electron):
+// 1. 项目源目录 .venv(D:\A2A\v2\.venv,开发/本机测试)
+// 2. 打包目录旁(可选)
+// 3. 系统 python
 function findPython() {
   const candidates = [
     path.join(PROJECT_ROOT, ".venv", "Scripts", "python.exe"),
     path.join(PROJECT_ROOT, ".venv", "bin", "python"),
+    // 本机测试:直接指向项目源 .venv(D:\A2A\v2)
+    path.join("D:", "A2A", "v2", ".venv", "Scripts", "python.exe"),
+    path.join(process.env.LOCALAPPDATA || "", "Programs", "Python", "Python311", "python.exe"),
     "python",
   ];
   for (const c of candidates) {
@@ -81,7 +91,7 @@ class BackendManager {
 
     this.proc = spawn(cmd, args, {
       cwd: PROJECT_ROOT,
-      env,
+      env: { ...env, PYTHONPATH: PROJECT_ROOT + (env.PYTHONPATH ? ";" + env.PYTHONPATH : "") },
       windowsHide: true,
     });
 

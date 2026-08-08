@@ -115,132 +115,157 @@ export default function GradientWaves() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvasEl = canvasRef.current;
-    if (!canvasEl) return;
-    const canvas: HTMLCanvasElement = canvasEl;
+    let cancelled = false;
+    let rafHandle = 0;
+    let cleanup: (() => void) | null = null;
 
-    const ctx = canvas.getContext("webgl2", {
-      alpha: true,
-      premultipliedAlpha: true,
-      antialias: false,
-    });
-    if (!ctx) return;
-    const gl: WebGL2RenderingContext = ctx;
+    function init() {
+      if (cancelled) return;
+      const canvasEl = canvasRef.current;
+      if (!canvasEl) return;
 
-    function compile(type: number, src: string): WebGLShader | null {
-      const sh = gl.createShader(type);
-      if (!sh) return null;
-      gl.shaderSource(sh, src);
-      gl.compileShader(sh);
-      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(sh));
-        return null;
+      const ctx = canvasEl.getContext("webgl2", {
+        alpha: true,
+        premultipliedAlpha: true,
+        antialias: false,
+      });
+      if (!ctx) return;
+      const canvas: HTMLCanvasElement = canvasEl;
+      const gl: WebGL2RenderingContext = ctx;
+
+      function compile(type: number, src: string): WebGLShader | null {
+        const sh = gl.createShader(type);
+        if (!sh) return null;
+        gl.shaderSource(sh, src);
+        gl.compileShader(sh);
+        if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+          console.error(gl.getShaderInfoLog(sh));
+          return null;
+        }
+        return sh;
       }
-      return sh;
-    }
 
-    const vs = compile(gl.VERTEX_SHADER, VERTEX);
-    const fs = compile(gl.FRAGMENT_SHADER, FRAGMENT);
-    const program = gl.createProgram();
-    if (!program || !vs || !fs) return;
-    gl.attachShader(program, vs);
-    gl.attachShader(program, fs);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      console.error(gl.getProgramInfoLog(program));
-      return;
-    }
-    gl.useProgram(program);
-
-    // Fullscreen triangle
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-    const posLoc = gl.getAttribLocation(program, "position");
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-
-    // uniforms
-    const u: Record<string, WebGLUniformLocation | null> = {};
-    [
-      "iResolution", "iTime", "uSpeed", "uAmplitude", "uWaveScale", "uWaveRatio",
-      "uSwell", "uTurbulence", "uTilt", "uZoom", "uHeight", "uFogDepth", "uSteps",
-      "uBrightness", "uOpacity", "uHorizonColor", "uWaveColor", "uCrestColor",
-    ].forEach((n) => {
-      u[n] = gl.getUniformLocation(program, n);
-    });
-
-    function setThemeColors(theme: string) {
-      const c = THEMES[theme] || THEMES.dark;
-      const h = hexToRgb(c.horizon);
-      const w = hexToRgb(c.wave);
-      const cr = hexToRgb(c.crest);
-      gl.uniform3f(u.uHorizonColor, h[0], h[1], h[2]);
-      gl.uniform3f(u.uWaveColor, w[0], w[1], w[2]);
-      gl.uniform3f(u.uCrestColor, cr[0], cr[1], cr[2]);
-      if (theme === "light") {
-        gl.uniform1f(u.uBrightness, 1.0);
-        gl.uniform1f(u.uOpacity, 3.0);
-      } else {
-        gl.uniform1f(u.uBrightness, 2.2);
-        gl.uniform1f(u.uOpacity, 1.0);
+      const vs = compile(gl.VERTEX_SHADER, VERTEX);
+      const fs = compile(gl.FRAGMENT_SHADER, FRAGMENT);
+      const program = gl.createProgram();
+      if (!program || !vs || !fs) return;
+      gl.attachShader(program, vs);
+      gl.attachShader(program, fs);
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error(gl.getProgramInfoLog(program));
+        return;
       }
-    }
+      gl.useProgram(program);
 
-    gl.uniform1f(u.uSpeed, 0.4);
-    gl.uniform1f(u.uAmplitude, 2.5);
-    gl.uniform1f(u.uWaveScale, 0.6);
-    gl.uniform1f(u.uWaveRatio, 0.9);
-    gl.uniform1f(u.uSwell, 35);
-    gl.uniform1f(u.uTurbulence, 20);
-    gl.uniform1f(u.uTilt, 0.85);
-    gl.uniform1f(u.uZoom, 1.0);
-    gl.uniform1f(u.uHeight, 3.0);
-    gl.uniform1f(u.uFogDepth, 5);
-    gl.uniform1f(u.uSteps, 70.0);
-    gl.uniform1f(u.uBrightness, 2.2);
-    gl.uniform1f(u.uOpacity, 1.0);
+      // Fullscreen triangle
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const posLoc = gl.getAttribLocation(program, "position");
+      gl.enableVertexAttribArray(posLoc);
+      gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
-    const initial = document.documentElement.getAttribute("data-theme") || "dark";
-    setThemeColors(initial);
+      // uniforms
+      const u: Record<string, WebGLUniformLocation | null> = {};
+      [
+        "iResolution", "iTime", "uSpeed", "uAmplitude", "uWaveScale", "uWaveRatio",
+        "uSwell", "uTurbulence", "uTilt", "uZoom", "uHeight", "uFogDepth", "uSteps",
+        "uBrightness", "uOpacity", "uHorizonColor", "uWaveColor", "uCrestColor",
+      ].forEach((n) => {
+        u[n] = gl.getUniformLocation(program, n);
+      });
 
-    function resize() {
-      const rect = canvas.getBoundingClientRect();
-      const w = Math.max(1, Math.floor(rect.width));
-      const h = Math.max(1, Math.floor(rect.height));
-      canvas.width = Math.floor(w * Math.min(window.devicePixelRatio || 1, 2));
-      canvas.height = Math.floor(h * Math.min(window.devicePixelRatio || 1, 2));
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.uniform2f(u.iResolution, canvas.width, canvas.height);
-    }
-    window.addEventListener("resize", resize);
-    resize();
+      function setThemeColors(theme: string) {
+        const c = THEMES[theme] || THEMES.dark;
+        const h = hexToRgb(c.horizon);
+        const w = hexToRgb(c.wave);
+        const cr = hexToRgb(c.crest);
+        gl.uniform3f(u.uHorizonColor, h[0], h[1], h[2]);
+        gl.uniform3f(u.uWaveColor, w[0], w[1], w[2]);
+        gl.uniform3f(u.uCrestColor, cr[0], cr[1], cr[2]);
+        if (theme === "light") {
+          gl.uniform1f(u.uBrightness, 1.0);
+          gl.uniform1f(u.uOpacity, 3.0);
+        } else {
+          gl.uniform1f(u.uBrightness, 2.2);
+          gl.uniform1f(u.uOpacity, 1.0);
+        }
+      }
 
-    // 动画循环
-    const t0 = performance.now();
-    let raf = 0;
-    function loop(t: number) {
-      gl.uniform1f(u.iTime, (t - t0) * 0.001);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      gl.uniform1f(u.uSpeed, 0.4);
+      gl.uniform1f(u.uAmplitude, 2.5);
+      gl.uniform1f(u.uWaveScale, 0.6);
+      gl.uniform1f(u.uWaveRatio, 0.9);
+      gl.uniform1f(u.uSwell, 35);
+      gl.uniform1f(u.uTurbulence, 20);
+      gl.uniform1f(u.uTilt, 0.85);
+      gl.uniform1f(u.uZoom, 1.0);
+      gl.uniform1f(u.uHeight, 3.0);
+      gl.uniform1f(u.uFogDepth, 5);
+      gl.uniform1f(u.uSteps, 70.0);
+      gl.uniform1f(u.uBrightness, 2.2);
+      gl.uniform1f(u.uOpacity, 1.0);
+
+      const initial = document.documentElement.getAttribute("data-theme") || "dark";
+      setThemeColors(initial);
+
+      function resize() {
+        const rect = canvas.getBoundingClientRect();
+        const w = Math.max(1, Math.floor(rect.width));
+        const h = Math.max(1, Math.floor(rect.height));
+        const tw = Math.floor(w * Math.min(window.devicePixelRatio || 1, 2));
+        const th = Math.floor(h * Math.min(window.devicePixelRatio || 1, 2));
+        if (canvas.width !== tw || canvas.height !== th) {
+          canvas.width = tw;
+          canvas.height = th;
+          gl.viewport(0, 0, tw, th);
+          gl.uniform2f(u.iResolution, tw, th);
+        }
+      }
+      window.addEventListener("resize", resize);
+      resize();
+
+      // 布局稳定后强制校准(兼容 file:// / Electron 初始化时机差异)
+      const timers = [100, 300, 800].map((ms) => setTimeout(resize, ms));
+      const fontTimer = setTimeout(() => resize(), 1200);
+
+      // 动画循环
+      const t0 = performance.now();
+      let raf = 0;
+      function loop(t: number) {
+        gl.uniform1f(u.iTime, (t - t0) * 0.001);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        raf = requestAnimationFrame(loop);
+      }
       raf = requestAnimationFrame(loop);
-    }
-    raf = requestAnimationFrame(loop);
 
-    // 主题切换监听
-    const observer = new MutationObserver(() => {
-      const theme = document.documentElement.getAttribute("data-theme") || "dark";
-      setThemeColors(theme);
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
+      // 主题切换监听
+      const observer = new MutationObserver(() => {
+        const theme = document.documentElement.getAttribute("data-theme") || "dark";
+        setThemeColors(theme);
+      });
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
+
+      cleanup = () => {
+        cancelAnimationFrame(raf);
+        window.removeEventListener("resize", resize);
+        timers.forEach(clearTimeout);
+        clearTimeout(fontTimer);
+        observer.disconnect();
+      };
+    }
+
+    // 等待 canvas 挂载后初始化
+    rafHandle = requestAnimationFrame(() => init());
 
     return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
-      observer.disconnect();
-      gl.getExtension("WEBGL_lose_context")?.loseContext();
+      cancelled = true;
+      cancelAnimationFrame(rafHandle);
+      if (cleanup) cleanup();
     };
   }, []);
 
