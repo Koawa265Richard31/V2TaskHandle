@@ -1,0 +1,935 @@
+<!DOCTYPE html><html class="dark" lang="en" data-theme="dark"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>AETHER CONSOLE</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Hanken+Grotesk:wght@600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "var(--error-container)",
+                        "on-secondary-fixed-variant": "var(--on-secondary-fixed-variant)",
+                        "inverse-primary": "var(--inverse-primary)",
+                        "secondary-fixed-dim": "var(--secondary-fixed-dim)",
+                        "primary-fixed": "var(--primary-fixed)",
+                        "on-background": "var(--on-background)",
+                        "on-tertiary-fixed-variant": "var(--on-tertiary-fixed-variant)",
+                        "tertiary-fixed": "var(--tertiary-fixed)",
+                        "outline-variant": "var(--outline-variant)",
+                        "on-primary-container": "var(--on-primary-container)",
+                        "primary-fixed-dim": "var(--primary-fixed-dim)",
+                        "on-secondary-container": "var(--on-secondary-container)",
+                        "on-tertiary": "var(--on-tertiary)",
+                        "tertiary-fixed-dim": "var(--tertiary-fixed-dim)",
+                        "on-error-container": "var(--on-error-container)",
+                        "surface-container-highest": "var(--surface-container-highest)",
+                        "secondary-container": "var(--secondary-container)",
+                        "primary": "var(--primary)",
+                        "surface-variant": "var(--surface-variant)",
+                        "on-surface": "var(--on-surface)",
+                        "on-primary-fixed": "var(--on-primary-fixed)",
+                        "tertiary": "var(--tertiary)",
+                        "on-primary": "var(--on-primary)",
+                        "surface-tint": "var(--surface-tint)",
+                        "on-tertiary-container": "var(--on-tertiary-container)",
+                        "on-error": "var(--on-error)",
+                        "on-secondary-fixed": "var(--on-secondary-fixed)",
+                        "surface": "var(--surface)",
+                        "inverse-surface": "var(--inverse-surface)",
+                        "primary-container": "var(--primary-container)",
+                        "surface-dim": "var(--surface-dim)",
+                        "surface-container-high": "var(--surface-container-high)",
+                        "on-surface-variant": "var(--on-surface-variant)",
+                        "surface-bright": "var(--surface-bright)",
+                        "error": "var(--error)",
+                        "outline": "var(--outline)",
+                        "tertiary-container": "var(--tertiary-container)",
+                        "surface-container-low": "var(--surface-container-low)",
+                        "on-secondary": "var(--on-secondary)",
+                        "secondary": "var(--secondary)",
+                        "background": "var(--background)",
+                        "surface-container": "var(--surface-container)",
+                        "secondary-fixed": "var(--secondary-fixed)",
+                        "surface-container-lowest": "var(--surface-container-lowest)",
+                        "on-tertiary-fixed": "var(--on-tertiary-fixed)",
+                        "inverse-on-surface": "var(--inverse-on-surface)",
+                        "on-primary-fixed-variant": "var(--on-primary-fixed-variant)"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "container_padding": "24px",
+                        "node_gap": "40px",
+                        "sidebar_width": "260px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Geist"],
+                        "display-lg": ["Hanken Grotesk"],
+                        "body-lg": ["Geist"],
+                        "code-sm": ["JetBrains Mono"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "headline-sm": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "code-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        :root {
+            --error-container: #93000a; --on-secondary-fixed-variant: #3a2f7a; --inverse-primary: #494bd6;
+            --secondary-fixed-dim: #8b7fd8; --primary-fixed: #e1e0ff; --on-background: #e3e1e9;
+            --on-tertiary-fixed-variant: #3a2f7a; --tertiary-fixed: #a99ff0; --outline-variant: #464554;
+            --on-primary-container: #0d0096; --primary-fixed-dim: #c0c1ff; --on-secondary-container: #b9aef2;
+            --on-tertiary: #e8e6ff; --tertiary-fixed-dim: #6d5bd0; --on-error-container: #ffdad6;
+            --surface-container-highest: #34343a; --secondary-container: #4a3a7a; --primary: #a99ff0;
+            --surface-variant: #34343a; --on-surface: #e3e1e9; --on-primary-fixed: #07006c; --tertiary: #8b7fd8;
+            --on-primary: #1000a9; --surface-tint: #c0c1ff; --on-tertiary-container: #1e174f; --on-error: #690005;
+            --on-secondary-fixed: #110a35; --surface: #121318; --inverse-surface: #e3e1e9; --primary-container: #8083ff;
+            --surface-dim: #121318; --surface-container-high: #292a2f; --on-surface-variant: #c7c4d7;
+            --surface-bright: #38393f; --error: #ffb4ab; --outline: #908fa0; --tertiary-container: #4a3a7a;
+            --surface-container-low: #1a1b21; --on-secondary: #b9aef2; --secondary: #a99ff0; --background: #121318;
+            --surface-container: #1e1f25; --secondary-fixed: #f0dbff; --surface-container-lowest: #0d0e13;
+            --on-tertiary-fixed: #110a35; --inverse-on-surface: #2f3036; --on-primary-fixed-variant: #2f2ebe;
+            --border: #2a3040; --glass-bg: rgba(255, 255, 255, 0.03); --glow: rgba(109, 91, 208, 0.35);
+            --glow-core: rgba(139, 92, 246, 0.55); --glow-soft: rgba(59, 130, 246, 0.15); --line: #000000;
+            --shiny-base: rgba(139, 92, 246, 0.45); --shiny-highlight: rgba(196, 181, 253, 1);
+            --ripple: radial-gradient(circle at center, rgba(74, 58, 122, 0.08) 0%, transparent 70%);
+        }
+        [data-theme="light"] {
+            --error-container: #ffdad6; --on-secondary-fixed-variant: #2f2ebe; --inverse-primary: #494bd6;
+            --secondary-fixed-dim: #b9aef2; --primary-fixed: #a99ff0; --on-background: #0f172a;
+            --on-tertiary-fixed-variant: #2f2ebe; --tertiary-fixed: #7dd3fc; --outline-variant: #cbd5e1;
+            --on-primary-container: #0c4a6e; --primary-fixed-dim: #7dd3fc; --on-secondary-container: #0c4a6e;
+            --on-tertiary: #075985; --tertiary-fixed-dim: #7dd3fc; --on-error-container: #7f1d1d;
+            --surface-container-highest: #f1f5f9; --secondary-container: #e0f2fe; --primary: #0ea5e9;
+            --surface-variant: #f1f5f9; --on-surface: #0f172a; --on-primary-fixed: #0c4a6e; --tertiary: #38bdf8;
+            --on-primary: #ffffff; --surface-tint: #0ea5e9; --on-tertiary-container: #0c4a6e; --on-error: #ffffff;
+            --on-secondary-fixed: #0c4a6e; --surface: #ffffff; --inverse-surface: #0f172a; --primary-container: #e0f2fe;
+            --surface-dim: #f8fafc; --surface-container-high: #e2e8f0; --on-surface-variant: #475569;
+            --surface-bright: #ffffff; --error: #ef4444; --outline: #94a3b8; --tertiary-container: #bae6fd;
+            --surface-container-low: #f8fafc; --on-secondary: #075985; --secondary: #38bdf8; --background: #ffffff;
+            --surface-container: #f1f5f9; --secondary-fixed: #e0f2fe; --surface-container-lowest: #ffffff;
+            --on-tertiary-fixed: #0c4a6e; --inverse-on-surface: #f8fafc; --on-primary-fixed-variant: #0c4a6e;
+            --border: #cbd5e1; --glass-bg: rgba(255, 255, 255, 0.6); --glow: rgba(14, 165, 233, 0.3);
+            --glow-core: rgba(14, 165, 233, 0.45); --glow-soft: rgba(59, 130, 246, 0.12); --line: #ffffff;
+            --shiny-base: rgba(2, 132, 199, 0.9); --shiny-highlight: rgba(0, 0, 0, 1);
+            --ripple: radial-gradient(circle at center, rgba(14, 165, 233, 0.08) 0%, transparent 70%);
+        }
+        body { background-color: var(--surface-dim); overflow: hidden; transition: background-color 0.3s ease; }
+        .glass-panel { background: var(--glass-bg, rgba(255, 255, 255, 0.03)); backdrop-filter: blur(12px); border: 1px solid var(--border); transition: all 0.3s ease; }
+        .glass-accent { background: color-mix(in srgb, var(--accent, var(--primary)) 10%, transparent); backdrop-filter: blur(16px); border: 1px solid var(--border); transition: all 0.3s ease; }
+        .glow-active { box-shadow: 0 0 12px 2px var(--glow, rgba(109, 91, 208, 0.35)); border-color: var(--tertiary); }
+
+        @keyframes ripple {
+            0% { transform: scale(1); opacity: 0.2; }
+            50% { transform: scale(1.1); opacity: 0.4; }
+            100% { transform: scale(1); opacity: 0.2; }
+        }
+        .bg-ripple {
+            position: absolute; width: 150vw; height: 150vh; top: -25vh; left: -25vw;
+            background: var(--ripple, radial-gradient(circle at center, rgba(74, 58, 122, 0.08) 0%, transparent 70%));
+            animation: ripple 15s ease-in-out infinite; z-index: -1; pointer-events: none;
+        }
+
+        .typing-cursor::after {
+            content: '▌'; display: inline-block; animation: blink 1s step-end infinite; color: #a99ff0;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* Border Trace Animation */
+        .border-trace {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.75rem; /* match tailwind xl */
+        }
+        .border-trace::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: conic-gradient(from 0deg, transparent 70%, var(--trace-color, #8b7fd8) 100%);
+            animation: rotate-trace 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            z-index: 0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .border-trace.is-running::before {
+            opacity: 1;
+        }
+        .border-trace::after {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            background: var(--surface-container-low);
+            border-radius: calc(0.75rem - 2px);
+            z-index: 1;
+        }
+        @keyframes rotate-trace {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .border-trace-inner {
+            position: relative;
+            z-index: 2;
+        }
+
+
+        /* ── ReactBits 风格动画(纯 CSS 复刻) ──────────────── */
+
+        /* ShinyText:光泽扫过 */
+        @keyframes shine {
+            0% { background-position: 100% 50%; }
+            100% { background-position: -100% 50%; }
+        }
+        .shiny-text {
+            color: var(--shiny-base, rgba(255, 255, 255, 0.5)) !important;
+            background: linear-gradient(120deg,
+                transparent 30%,
+                var(--shiny-highlight, rgba(255, 255, 255, 0.9)) 50%,
+                transparent 70%);
+            background-size: 300% 100%;
+            background-position: 0% 50%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: shine 4s ease-in-out infinite;
+        }
+
+        /* BlurText:模糊→清晰浮现 */
+        @keyframes blurIn {
+            0% { filter: blur(12px); opacity: 0; }
+            100% { filter: blur(0); opacity: 1; }
+        }
+        .blur-text {
+            animation: blurIn 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+        }
+
+        /* ScrollReveal:滚动从下浮现 */
+        .reveal {
+            opacity: 0;
+            transform: translateY(18px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .reveal.in-view {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* GradientText:渐变流动 */
+        @keyframes gradFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, var(--primary), var(--primary-soft, var(--primary)), var(--primary-deep, var(--primary)), var(--primary));
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: gradFlow 6s ease infinite;
+        }
+
+        /* AnimatedContent:内容淡入缩放 */
+        @keyframes contentIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animated-content {
+            animation: contentIn 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+        }
+
+        /* 交错显现(staggered) */
+        .stagger-item {
+            opacity: 0;
+            animation: contentIn 0.4s ease both;
+        }
+
+        /* 消息气泡滑入 */
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-in { animation: slideIn 0.3s ease both; }
+
+        /* Border Glow:鼠标靠近时紫色/蓝色光晕(主题感知) */
+        .border-glow {
+            position: relative;
+        }
+        .border-glow::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: radial-gradient(300px circle at var(--x, 50%) var(--y, 50%),
+                var(--glow-core, rgba(139, 92, 246, 0.5)),
+                var(--glow-soft, rgba(59, 130, 246, 0.15)),
+                transparent 60%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .border-glow:hover::before {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="text-on-surface font-body-md h-screen flex" style="background-color: var(--surface-dim);">
+<div class="bg-ripple"></div>
+<!-- GradientWaves WebGL 背景 -->
+<canvas id="gradient-waves" style="position:fixed;left:0;right:0;bottom:0;width:100%;height:75%;z-index:-1;pointer-events:none"></canvas>
+<!-- NavigationDrawer (Sidebar) -->
+<aside id="sidebar" class="fixed left-0 top-0 h-full w-sidebar_width bg-surface/30 backdrop-blur-xl border-r border-outline-variant/20 flex flex-col py-container_padding z-20 transition-all duration-500 border-glow">
+<div class="px-4 mb-8 border-glow" style="border-bottom:1px solid var(--line)">
+<h1 class="font-display-lg text-display-lg text-primary tracking-tighter text-2xl">AETHER CONSOLE</h1>
+</div>
+<!-- 收纳按钮:向左收起导航 -->
+<button onclick="toggleSidebar()" class="absolute right-2 top-2 w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-surface-variant/20 cursor-pointer" style="color:var(--on-surface-variant)" title="收起/展开导航">
+<span class="material-symbols-outlined text-[16px]">menu</span>
+</button>
+<nav class="flex-1 px-2 space-y-1">
+<!-- Active Tab: Orchestration -->
+<a data-view="chat" onclick="switchView('chat', this)" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all" style="border-left:4px solid var(--primary);background:var(--primary-faint);color:var(--primary)">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">hub</span>
+<span class="font-headline-sm text-headline-sm text-sm">Orchestration</span>
+</a>
+<!-- Agents 父级:点击展开子分组 -->
+<div>
+<a data-view="agents" onclick="switchView('agents', this)" class="nav-item flex items-center justify-between gap-3 px-3 py-2.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/10 transition-colors duration-200 rounded-lg cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">smart_toy</span>
+<span class="font-headline-sm text-headline-sm text-sm">Agents</span>
+</div>
+<span class="material-symbols-outlined text-[15px] transition-transform duration-200" id="agents-group-arrow">expand_more</span>
+</a>
+<div id="agents-group" class="hidden mt-1 space-y-0.5 ml-3">
+<!-- Cloud Agents 子分组 -->
+<div>
+<div onclick="toggleSection('cloud-agents')" class="flex items-center justify-center gap-2 px-3 py-2 text-on-surface-variant cursor-pointer group rounded-md hover:bg-surface-variant/10 transition-colors">
+<span class="flex items-center gap-2 font-code-sm text-code-sm uppercase tracking-wider">
+<span class="material-symbols-outlined text-[15px]">cloud</span>Cloud Agents
+</span>
+<span class="flex items-center gap-1 ml-2">
+<span class="text-[10px] bg-surface-container-high px-1.5 rounded text-on-surface">3</span>
+<span class="material-symbols-outlined text-[15px] group-hover:text-primary transition-colors" id="cloud-agents-arrow">expand_more</span>
+</span>
+</div>
+<div id="cloud-agents" class="hidden mt-1 space-y-1.5"></div>
+</div>
+<!-- Local Agents 子分组 -->
+<div>
+<div onclick="toggleSection('local-agents')" class="flex items-center justify-center gap-2 px-3 py-2 text-on-surface-variant cursor-pointer group rounded-md hover:bg-surface-variant/10 transition-colors">
+<span class="flex items-center gap-2 font-code-sm text-code-sm uppercase tracking-wider">
+<span class="material-symbols-outlined text-[15px]">dns</span>Local Agents
+</span>
+<span class="flex items-center gap-1 ml-2">
+<span class="text-[10px] bg-surface-container-high px-1.5 rounded text-on-surface">1</span>
+<span class="material-symbols-outlined text-[15px] group-hover:text-primary transition-colors" id="local-agents-arrow">expand_more</span>
+</span>
+</div>
+<div id="local-agents" class="hidden mt-1 space-y-1.5"></div>
+</div>
+</div>
+<a data-view="history" onclick="switchView('history', this)" class="nav-item flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/10 transition-colors duration-200 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined">history</span>
+<span class="font-headline-sm text-headline-sm text-sm">History</span>
+</a>
+</nav>
+<!-- Sidebar Bottom: User + Settings (点击用户弹出 popover,与导航融合) -->
+<div class="mt-auto px-3 py-3 border-glow relative">
+    <!-- 用户圆框 -->
+    <button onclick="toggleUserMenu()" class="w-full flex items-center gap-3 py-1.5 rounded-lg cursor-pointer transition-colors hover:bg-surface-variant/10" title="用户">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style="background:var(--primary-faint);border:1px solid var(--primary)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </svg>
+        </div>
+        <span class="text-xs text-on-surface-variant truncate">User</span>
+        <span class="material-symbols-outlined text-[14px] text-on-surface-variant ml-auto transition-transform" id="user-arrow">expand_less</span>
+    </button>
+    <!-- kimi 风格 popover:点击用户弹出浮层菜单 -->
+    <div id="user-menu" class="hidden absolute bottom-full left-2 mb-2 w-56 rounded-xl glass-panel overflow-hidden z-30 animated-content" style="box-shadow:0 8px 30px rgba(0,0,0,0.35)">
+        <div class="p-3 border-b" style="border-color:var(--border)">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:var(--primary-faint);border:1px solid var(--primary)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="text-sm font-medium" style="color:var(--on-surface)">User</div>
+                    <div class="text-[11px]" style="color:var(--on-surface-variant)">个人 Agent</div>
+                </div>
+            </div>
+        </div>
+        <div class="p-1.5 space-y-0.5">
+            <button onclick="openSettings()" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/10 transition-colors text-[13px] cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">settings</span>Settings
+            </button>
+            <div class="flex items-center justify-between px-3 py-2">
+                <span class="text-[13px]" style="color:var(--on-surface-variant)">主题</span>
+                <div class="flex items-center gap-1">
+                    <button onclick="setTheme('dark')" class="w-7 h-7 rounded-md flex items-center justify-center transition-colors" style="border:1px solid var(--border);" id="sb-dark-btn" title="黑紫主题">
+                        <span class="material-symbols-outlined text-[14px] text-on-surface-variant">dark_mode</span>
+                    </button>
+                    <button onclick="setTheme('light')" class="w-7 h-7 rounded-md flex items-center justify-center transition-colors" style="border:1px solid var(--border);" id="sb-light-btn" title="蓝白主题">
+                        <span class="material-symbols-outlined text-[14px] text-on-surface-variant">light_mode</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</aside>
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 w-[calc(100%-260px)] bg-surface/10 backdrop-blur-md flex justify-between items-center px-container_padding h-16 z-20 transition-all duration-300 border-glow" style="border-bottom:1px solid var(--line)">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined cursor-pointer hover:bg-white/5 rounded-full p-2 text-on-surface-variant active:opacity-70">menu</span>
+<span class="font-headline-md text-headline-md text-primary text-xl font-bold tracking-tight blur-text">Agent Orchestrator</span>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 ml-[260px] mt-16 flex h-[calc(100vh-64px)] relative z-10">
+<!-- Middle Column: Chat Interface -->
+<div id="chat-view" class="flex-1 flex flex-col p-6 relative">
+    <!-- 欢迎区(未对话时居中显示) -->
+    <div id="welcome-area" class="flex-1 flex flex-col items-center justify-center transition-all duration-500">
+        <h2 class="font-display-lg text-display-lg shiny-text mb-3" style="color:var(--primary);font-size:42px;font-weight:700;letter-spacing:-0.02em">Agent Orchestrator</h2>
+        <p class="font-body-md text-on-surface-variant mb-8 text-[15px]">尽管问，或做个 Agent 任务…</p>
+        <!-- 对话框(居中) -->
+        <div class="w-full max-w-2xl glass-panel rounded-full overflow-hidden transition-all duration-300 focus-within:glow-active focus-within:bg-surface-container-high" id="input-box">
+            <input id="main-input" class="w-full bg-transparent border-none text-on-surface font-body-lg text-body-lg px-6 py-4 focus:ring-0 placeholder:text-on-surface-variant/50" placeholder="把任务交给我…" type="text">
+            <button class="absolute right-2 top-2 bottom-2 w-10 h-10 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center text-primary transition-colors">
+                <span class="material-symbols-outlined text-[20px]">send</span>
+            </button>
+        </div>
+    </div>
+    <!-- 消息区 -->
+    <div id="chat-messages" class="flex-1 overflow-y-auto space-y-6 pb-24 pr-4"></div>
+    <!-- 底部输入框(对话后) -->
+    <div id="bottom-input" class="hidden absolute bottom-6 left-6 right-6 transition-all duration-500">
+        <div class="relative glass-panel rounded-full overflow-hidden transition-all duration-300 focus-within:glow-active focus-within:bg-surface-container-high">
+            <input id="bottom-main-input" class="w-full bg-transparent border-none text-on-surface font-body-lg text-body-lg px-6 py-4 focus:ring-0 placeholder:text-on-surface-variant/50" placeholder="把任务交给我…" type="text">
+            <button class="absolute right-2 top-2 bottom-2 w-10 h-10 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center text-primary transition-colors">
+                <span class="material-symbols-outlined text-[20px]">send</span>
+            </button>
+        </div>
+    </div>
+</div>
+<!-- Agents Registry View -->
+<div id="agents-view" class="hidden flex-1 flex-col p-6 relative overflow-y-auto">
+    <div class="max-w-2xl mx-auto w-full">
+        <h2 class="font-headline-md text-headline-md text-on-surface mb-4">Agent Registry</h2>
+        <div id="agents-list" class="space-y-3"></div>
+    </div>
+</div>
+<!-- Right Panel: Task Orchestration DAG (400px+) -->
+<aside id="dag-panel" class="w-[440px] border-l border-outline-variant/20 glass-panel flex flex-col h-full overflow-hidden relative transition-all duration-300" style="background-color: var(--surface-dim);">
+<!-- WebGL Background Wave -->
+
+<div class="p-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface/40 backdrop-blur-sm relative z-10 border-glow">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Orchestration Graph</h2>
+<div class="flex gap-2">
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer text-sm">zoom_in</span>
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer text-sm">zoom_out</span>
+<button onclick="toggleDag()" class="w-6 h-6 rounded-md flex items-center justify-center hover:bg-surface-variant/20 transition-colors cursor-pointer" title="收起/展开 DAG">
+<span class="material-symbols-outlined text-on-surface-variant text-[16px]">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="flex-1 relative overflow-auto p-4 flex flex-col items-center z-10"><div id="dag-container" class="w-full space-y-3"></div>
+    <div id="dag-empty" class="text-center text-on-surface-variant text-sm py-10">
+        提交复杂任务后,这里展示分解的任务 DAG
+    </div></div>
+</aside>
+</main>
+<script>
+    function initWebGL() {
+        const canvas = document.getElementById('wave-canvas');
+        if (!canvas) return;
+        const gl = canvas.getContext('webgl');
+        if (!gl) return;
+
+        const resize = () => {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        };
+        window.addEventListener('resize', resize);
+        resize();
+
+        const vsSource = `
+            attribute vec4 a_position;
+            varying vec2 v_texCoord;
+            void main() {
+                gl_Position = a_position;
+                v_texCoord = a_position.xy * 0.5 + 0.5;
+            }
+        `;
+        const fsSource = `
+            precision highp float;
+            varying vec2 v_texCoord;
+            uniform float u_time;
+            uniform vec2 u_resolution;
+
+            void main() {
+                vec2 uv = v_texCoord;
+                
+                // Scale and aspect ratio correction
+                float aspect = u_resolution.x / u_resolution.y;
+                vec2 p = uv * 2.0 - 1.0;
+                p.x *= aspect;
+
+                // Movement: One single wave moving from bottom-right to top-left
+                // Direction vector: (-1, 1)
+                float dir = (p.x + p.y) * 0.5;
+                
+                // Smooth wave function
+                float wavePos = fract(dir - u_time * 0.1);
+                
+                // Thin, natural wave line with falloff
+                float wave = smoothstep(0.02, 0.0, abs(wavePos - 0.5));
+                
+                // Purple color palette from design system
+                vec3 waveColor = vec3(0.388, 0.4, 0.945); // #6366f1 indigo-like
+                
+                // Add some "watery" shimmer/noise to the wave edges
+                float noise = sin(p.x * 10.0 + u_time) * cos(p.y * 10.0 - u_time) * 0.01;
+                wave = smoothstep(0.02 + noise, 0.0, abs(wavePos - 0.5));
+
+                // Final color with transparency
+                vec4 finalColor = vec4(waveColor, wave * 0.15);
+                
+                gl_FragColor = finalColor;
+            }
+        `;
+
+        const compileShader = (type, source) => {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            return shader;
+        };
+
+        const program = gl.createProgram();
+        gl.attachShader(program, compileShader(gl.VERTEX_SHADER, vsSource));
+        gl.attachShader(program, compileShader(gl.FRAGMENT_SHADER, fsSource));
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+
+        const positionLocation = gl.getAttribLocation(program, "a_position");
+        gl.enableVertexAttribArray(positionLocation);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+        const timeLocation = gl.getUniformLocation(program, "u_time");
+        const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+
+        const render = (time) => {
+            gl.uniform1f(timeLocation, time * 0.001);
+            gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            requestAnimationFrame(render);
+        };
+        requestAnimationFrame(render);
+    }
+    initWebGL();
+</script>
+
+
+<!-- Settings Drawer -->
+<div id="settings-drawer" class="fixed right-0 top-0 h-full w-[360px] z-50 glass-panel transform transition-transform duration-300 translate-x-full" style="backdrop-filter: blur(20px);">
+    <div class="flex items-center justify-between px-5 py-4 border-b" style="border-color: var(--border);">
+        <span class="font-code-sm text-code-sm uppercase tracking-wider text-on-surface-variant">Settings</span>
+        <button onclick="closeSettings()" class="p-1.5 rounded-lg hover:bg-surface-variant/20 transition-colors text-on-surface-variant">✕</button>
+    </div>
+    <div class="p-5 space-y-5">
+        <div>
+            <div class="text-sm font-medium mb-2">Theme</div>
+            <div class="flex gap-2">
+                <button onclick="setTheme('dark')" class="flex-1 px-4 py-2.5 rounded-lg border transition-colors text-sm" style="border-color: var(--border);" id="theme-dark-btn">
+                    <span class="block text-on-surface">Dark</span>
+                    <span class="text-xs text-on-surface-variant mt-0.5">黑紫</span>
+                </button>
+                <button onclick="setTheme('light')" class="flex-1 px-4 py-2.5 rounded-lg border transition-colors text-sm" style="border-color: var(--border);" id="theme-light-btn">
+                    <span class="block text-on-surface">Light</span>
+                    <span class="text-xs text-on-surface-variant mt-0.5">蓝白</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="settings-overlay" class="fixed inset-0 z-40 bg-black/40 hidden" onclick="closeSettings()"></div>
+
+<script>
+function toggleSection(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const hidden = el.classList.contains('hidden');
+    el.classList.toggle('hidden');
+    // 旋转箭头
+    const arrow = document.getElementById(id + '-arrow');
+    if (arrow) {
+        arrow.style.transform = hidden ? 'rotate(180deg)' : '';
+        arrow.style.transition = 'transform 0.2s ease';
+    }
+}
+function toggleDag() {
+    const panel = document.getElementById('dag-panel');
+    if (!panel) return;
+    const collapsed = panel.classList.toggle('dag-collapsed');
+    panel.style.width = collapsed ? '0px' : '440px';
+    panel.style.minWidth = collapsed ? '0px' : '440px';
+    panel.style.borderLeft = collapsed ? 'none' : '';
+    // 收起时隐藏 DAG 内容区(保留标题栏以便展开)
+    const content = panel.querySelector('.flex-1');
+    if (content) content.style.display = collapsed ? 'none' : '';
+}
+function toggleTheme() {
+    const root = document.documentElement;
+    const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    setTheme(next);
+}
+function setTheme(theme) {
+    const root = document.documentElement;
+    root.setAttribute('data-theme', theme);
+    root.classList.toggle('dark', theme === 'dark');
+    // 高亮当前主题按钮(可选链不能用于赋值,先判空)
+    const darkBtn = document.getElementById('theme-dark-btn');
+    const lightBtn = document.getElementById('theme-light-btn');
+    if (darkBtn) darkBtn.style.borderColor = theme === 'dark' ? 'var(--primary)' : 'var(--border)';
+    if (lightBtn) lightBtn.style.borderColor = theme === 'light' ? 'var(--primary)' : 'var(--border)';
+}
+function openSettings() {
+    document.getElementById('settings-drawer').classList.remove('translate-x-full');
+    document.getElementById('settings-overlay').classList.remove('hidden');
+    // 初始化按钮高亮
+    const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+    setTheme(cur);
+}
+function closeSettings() {
+    document.getElementById('settings-drawer').classList.add('translate-x-full');
+    document.getElementById('settings-overlay').classList.add('hidden');
+}
+</script>
+<script>
+// ── 后端适配:接 task_orchestrator API ─────────────────────
+const API_URL = 'http://localhost:8000';
+let sessionId = null;
+
+// 导航收纳:向左收起/展开
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const main = document.querySelector('main');
+    const header = document.querySelector('header');
+    if (!sidebar) return;
+    const collapsed = sidebar.classList.toggle('sidebar-collapsed');
+    sidebar.style.width = collapsed ? '60px' : '260px';
+    sidebar.style.minWidth = collapsed ? '60px' : '260px';
+    // 隐藏/显示内容
+    sidebar.querySelectorAll('nav, .border-glow, .mt-auto').forEach(el => {
+        el.style.display = collapsed ? 'none' : '';
+    });
+    // 调整主区和顶栏偏移
+    const off = collapsed ? 60 : 260;
+    if (main) main.style.marginLeft = off + 'px';
+    if (header) header.style.width = 'calc(100% - ' + off + 'px)';
+}
+
+// 用户菜单:点击用户圆框弹出 popover(kimi 风格),点击外部关闭
+function toggleUserMenu() {
+    const menu = document.getElementById('user-menu');
+    const arrow = document.getElementById('user-arrow');
+    if (!menu) return;
+    const hidden = menu.classList.contains('hidden');
+    menu.classList.toggle('hidden');
+    if (arrow) arrow.style.transform = hidden ? 'rotate(180deg)' : '';
+}
+// 点击页面其他位置关闭用户 popover
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('user-menu');
+    const btn = document.querySelector('button[title="用户"]');
+    if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && btn && !btn.contains(e.target)) {
+        menu.classList.add('hidden');
+        const arrow = document.getElementById('user-arrow');
+        if (arrow) arrow.style.transform = '';
+    }
+});
+
+// ── 视图切换:chat / agents / history ─────────────────────
+function switchView(view, el) {
+    // 高亮当前导航项
+    document.querySelectorAll('.nav-item').forEach(n => {
+        const isActive = n === el;
+        n.style.borderLeft = isActive ? '4px solid var(--primary)' : '4px solid transparent';
+        n.style.background = isActive ? 'var(--primary-faint)' : 'transparent';
+        n.style.color = isActive ? 'var(--primary)' : 'var(--on-surface-variant)';
+    });
+    // 切换主区域视图
+    const chat = document.getElementById('chat-view');
+    const agents = document.getElementById('agents-view');
+    if (view === 'agents') {
+        if (chat) chat.style.display = 'none';
+        if (agents) { agents.style.display = 'flex'; loadAgentsList(); }
+        const dag = document.getElementById('dag-panel');
+        if (dag) dag.style.display = 'none';
+        // 点 Agents:切换子分组折叠(再次点击可收起)
+        const group = document.getElementById('agents-group');
+        if (group) group.classList.toggle('hidden');
+        // 同步箭头
+        const arrow = document.getElementById('agents-group-arrow');
+        if (arrow) arrow.style.transform = group.classList.contains('hidden') ? '' : 'rotate(180deg)';
+    } else {
+        if (agents) agents.style.display = 'none';
+        if (chat) chat.style.display = '';
+        const dag = document.getElementById('dag-panel');
+        if (dag) dag.style.display = '';
+    }
+}
+
+// 渲染 agent 注册列表页
+async function loadAgentsList() {
+    const box = document.getElementById('agents-list');
+    if (!box) return;
+    try {
+        const r = await fetch(API_URL + '/api/agents');
+        const agents = await r.json();
+        box.innerHTML = agents.map(a => {
+            const status = a.status || (a.available ? 'online' : 'offline');
+            const color = status === 'online' ? '#34d399' : status === 'busy' ? '#f59e0b' : '#908fa0';
+            const indicator = status === 'busy'
+                ? '<span class="w-3 h-3 border-2 rounded-full animate-spin" style="border-color:#f59e0b;border-top-color:transparent"></span>'
+                : '<span class="w-2 h-2 rounded-full" style="background-color:' + color + '"></span>';
+            return '<div class="glass-panel rounded-lg p-4 flex items-center justify-between">' +
+                '<div class="flex items-center gap-3">' + indicator +
+                '<div><div class="font-headline-sm text-headline-sm text-on-surface">' + a.name + '</div>' +
+                '<div class="font-code-sm text-code-sm text-on-surface-variant">' + a.type + '</div></div></div>' +
+                '<div class="text-right"><div class="font-code-sm text-[10px] uppercase text-on-surface-variant" style="color:' + color + '">' + status + '</div>' +
+                '<div class="font-code-sm text-[10px] text-on-surface-variant">' + (a.available ? 'available' : 'offline') + '</div></div></div>';
+        }).join('');
+    } catch (e) {
+        box.innerHTML = '<div class="text-on-surface-variant">agent 列表加载失败</div>';
+    }
+}
+
+// 拉取 agents 填侧栏
+async function loadAgents() {
+    try {
+        const r = await fetch(API_URL + '/api/agents');
+        const agents = await r.json();
+        const cloud = agents.filter(a => a.type === 'a2a' || a.type === 'retrieval');
+        const local = agents.filter(a => a.type === 'codex' || a.type === 'codex_cli' || a.type === 'local');
+        renderAgents('cloud-agents', cloud);
+        renderAgents('local-agents', local);
+        // 更新计数
+        document.querySelectorAll('.flex.items-center.gap-2 .text-\\[10px\\]').forEach(el => {});
+    } catch (e) { console.error('agents 加载失败', e); }
+}
+
+function renderAgents(containerId, agents) {
+    const box = document.getElementById(containerId);
+    if (!box) return;
+    box.innerHTML = '';
+    agents.forEach((a, i) => {
+        const isBusy = a.status === 'busy';
+        const color = a.available ? (isBusy ? '#f59e0b' : '#34d399') : '#908fa0';
+        const row = document.createElement('div');
+        // busy → border-trace 圆角旋转轨迹; 否则 glass-accent
+        if (isBusy) {
+            row.className = 'border-trace is-running px-3 py-2 rounded-lg stagger-item';
+            row.style.setProperty('--trace-color', '#8b7fd8');
+            row.style.animationDelay = (i * 0.06) + 's';
+            row.innerHTML = '<div class="border-trace-inner flex items-center gap-2.5">' +
+                '<span class="w-1.5 h-1.5 rounded-full" style="background-color:#f59e0b"></span>' +
+                '<span class="font-body-md text-[13px]" style="color:var(--on-surface)">' + a.name + '</span></div>';
+        } else {
+            row.className = 'glass-accent px-3 py-2 rounded-lg stagger-item';
+            row.style.animationDelay = (i * 0.06) + 's';
+            row.style.setProperty('--accent', 'var(--tertiary)');
+            const indicator = a.available
+                ? '<span class="w-1.5 h-1.5 rounded-full" style="background-color:#34d399"></span>'
+                : '<span class="w-1.5 h-1.5 rounded-full" style="background-color:#908fa0"></span>';
+            row.innerHTML = '<div class="flex items-center gap-2.5">' + indicator + '<span class="font-body-md text-[13px]" style="color:var(--on-surface)">' + a.name + '</span></div>';
+        }
+        box.appendChild(row);
+    });
+}
+
+// 聊天:发消息 + SSE 流
+const chatForm = document.querySelector('form');
+const chatInput = chatForm ? chatForm.querySelector('input') : null;
+const chatBox = document.getElementById('chat-messages');
+
+function addMessage(role, text, plan) {
+    const div = document.createElement('div');
+    if (role === 'user') {
+        div.className = 'slide-in flex justify-end';
+        div.innerHTML = '<div class="max-w-[75%] glass-panel rounded-2xl rounded-tr-sm px-4 py-3 bg-surface-container-high/50">' +
+            '<p class="font-body-lg text-body-lg text-on-surface">' + escapeHtml(text) + '</p></div>';
+    } else {
+        div.className = 'slide-in flex justify-start';
+        let planHtml = '';
+        if (plan && plan.length) {
+            planHtml = '<div class="bg-surface/50 border border-outline-variant/30 rounded-lg p-3 space-y-2 mt-3">' +
+                plan.map(t => '<div class="flex items-center gap-3"><span class="w-2 h-2 rounded-full" style="background-color:' + statusColor(t.status) + '"></span>' +
+                '<span class="font-body-md text-sm text-on-surface-variant">' + escapeHtml(t.description.slice(0,50)) + '</span></div>').join('') + '</div>';
+        }
+        div.innerHTML = '<div class="max-w-[85%] glass-panel rounded-2xl rounded-tl-sm px-5 py-4 relative">' +
+            '<div class="absolute left-0 top-3 bottom-3 w-[3px] bg-secondary rounded-r"></div>' +
+            '<p class="font-body-lg text-body-lg text-on-surface typing-cursor">' + escapeHtml(text) + '</p>' + planHtml + '</div>';
+    }
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function statusColor(s) {
+    const m = { completed:'#34d399', running:'#f59e0b', failed:'#f87171', waiting_approval:'#f87171', pending:'#908fa0', ready:'#a99ff0' };
+    return m[s] || '#908fa0';
+}
+
+let currentPlan = [];
+function renderDag(tasks) {
+    const dagBox = document.getElementById('dag-container');
+    const emptyBox = document.getElementById('dag-empty');
+    if (!tasks || !tasks.length) { if (dagBox) dagBox.innerHTML=''; if (emptyBox) emptyBox.style.display=''; return; }
+    if (emptyBox) emptyBox.style.display = 'none';
+    currentPlan = tasks;
+    dagBox.innerHTML = tasks.map((t, i) => {
+        const border = t.status==='completed' ? '#34d399' : t.status==='running' ? '#f59e0b' : t.status==='failed'||t.status==='waiting_approval' ? '#f87171' : '#2a3040';
+        const deps = t.dependencies && t.dependencies.length ? '<div class="text-on-surface-variant font-code-sm text-[10px]">deps: ' + t.dependencies.join(',') + '</div>' : '';
+        const delay = Math.min(i * 0.08, 0.5);
+        return '<div class="glass-accent rounded-lg p-3 border-l-4 animated-content" style="--accent:var(--tertiary);border-left-color:' + border + ';animation-delay:' + delay + 's">' +
+            '<div class="flex justify-between items-start mb-1"><span class="font-code-sm text-code-sm text-on-surface">' + escapeHtml(t.description.slice(0,40)) + '</span>' +
+            '<span class="font-code-sm text-[10px] text-on-surface-variant bg-surface-variant px-1 rounded">' + t.task_id + '</span></div>' +
+            '<div class="flex justify-end items-center gap-2"><span class="w-1.5 h-1.5 rounded-full" style="background-color:' + statusColor(t.status) + '"></span>' +
+            '<span class="text-on-surface-variant font-code-sm text-[10px]">' + t.status + '</span></div>' + deps + '</div>';
+    }).join('');
+}
+
+async function sendMessage(text) {
+    if (!text.trim() || !chatBox) return;
+    addMessage('user', text);
+    const assistantDiv = document.createElement('div');
+    assistantDiv.className = 'flex justify-start';
+    assistantDiv.innerHTML = '<div class="max-w-[85%] glass-panel rounded-2xl rounded-tl-sm px-5 py-4 relative"><p class="font-body-lg text-body-lg text-on-surface typing-cursor"></p></div>';
+    chatBox.appendChild(assistantDiv);
+    const textEl = assistantDiv.querySelector('p');
+    try {
+        const resp = await fetch(API_URL + '/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text, session_id: sessionId })
+        });
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let assistantText = '';
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            let evt = '';
+            for (const line of lines) {
+                if (line.startsWith('event: ')) { evt = line.slice(7).trim(); continue; }
+                if (!line.startsWith('data: ')) continue;
+                const raw = line.slice(6);
+                if (raw === '[DONE]') continue;
+                try {
+                    const d = JSON.parse(raw);
+                    if (evt === 'plan') { renderDag(d.tasks); }
+                    else if (evt === 'message') { assistantText += (d.delta||''); textEl.textContent = assistantText; }
+                    else if (evt === 'task_update' || evt === 'task_complete' || evt === 'task_fail' || evt === 'task_waiting_approval') {
+                        if (currentPlan.length) {
+                            const upd = currentPlan.map(t => t.task_id===d.task_id ? { ...t, status: evt==='task_complete'?'completed':evt==='task_fail'?'failed':evt==='task_waiting_approval'?'waiting_approval':d.status } : t);
+                            renderDag(upd);
+                        }
+                    }
+                    else if (evt === 'done') { sessionId = d.session_id; }
+                } catch(e) {}
+            }
+        }
+        textEl.classList.remove('typing-cursor');
+        chatBox.scrollTop = chatBox.scrollHeight;
+    } catch (e) {
+        textEl.textContent = '错误: ' + e.message;
+        textEl.classList.remove('typing-cursor');
+    }
+}
+
+// 输入框提交:支持居中欢迎区和底部输入框,发送时切换布局
+function bindInput(inputEl) {
+    if (!inputEl) return;
+    inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            const text = inputEl.value;
+            inputEl.value = '';
+            enterChatMode();
+            sendMessage(text);
+        }
+    });
+}
+bindInput(document.getElementById('main-input'));
+bindInput(document.getElementById('bottom-main-input'));
+
+// 从欢迎模式切换到对话模式:欢迎区上移淡出,底部输入框浮现
+function enterChatMode() {
+    const welcome = document.getElementById('welcome-area');
+    const bottom = document.getElementById('bottom-input');
+    const messages = document.getElementById('chat-messages');
+    if (welcome && bottom) {
+        welcome.classList.add('animated-content');
+        welcome.style.display = 'none';
+        bottom.classList.remove('hidden');
+        bottom.classList.add('animated-content');
+    }
+    if (messages) {
+        messages.style.display = '';
+        messages.classList.add('animated-content');
+    }
+}
+
+// Border Glow:鼠标靠近分割线时紫色/蓝色光晕
+document.querySelectorAll('.border-glow').forEach(el => {
+    el.addEventListener('mousemove', (e) => {
+        const rect = el.getBoundingClientRect();
+        el.style.setProperty('--x', (e.clientX - rect.left) + 'px');
+        el.style.setProperty('--y', (e.clientY - rect.top) + 'px');
+    });
+});
+
+// 初始化
+loadAgents();
+</script>
+
+<script src="gradient-waves.js"></script>
+</body></html>

@@ -33,6 +33,10 @@ data/
 .coverage
 htmlcov/
 
+# 设计提取 / 组件库工具临时产物
+.extract-design-system/
+jsrepo.config.mts
+
 # IDE
 .idea/
 .vscode/
