@@ -20,6 +20,7 @@ from task_orchestrator.adapters.codex_cli_adapter import CodexCliAdapter
 from task_orchestrator.adapters.local_adapter import LocalAdapter
 from task_orchestrator.adapters.retrieval_adapter import RetrievalAdapter
 from task_orchestrator.common.config import get_settings
+from task_orchestrator.common.db import Database
 from task_orchestrator.common.llm import build_chat_model
 from task_orchestrator.main_agent.graph import build_main_agent
 from task_orchestrator.registry import AgentRegistry
@@ -40,12 +41,44 @@ _sessions: dict[str, dict] = {}
 _refresh_stop: asyncio.Event = asyncio.Event()
 _refresh_task: asyncio.Task | None = None
 
+# 运行时 codex 配置(用户在界面指定,覆盖 .env;SQLite 持久化)
+_runtime_codex: dict[str, str] = {}
+_codex_db: Database | None = None
+
+_CODEX_CONFIG_SCHEMA = [
+    "CREATE TABLE IF NOT EXISTS codex_config ("
+    "  key TEXT PRIMARY KEY,"
+    "  value TEXT NOT NULL"
+    ")",
+]
+
+
+def _load_codex_config(db: Database) -> dict[str, str]:
+    """从 db 加载运行时 codex 配置。"""
+    result: dict[str, str] = {}
+    for row in db.query("SELECT key, value FROM codex_config"):
+        result[row["key"]] = row["value"]
+    return result
+
+
+def _save_codex_config(db: Database, key: str, value: str) -> None:
+    """写入/更新单个 codex 配置项。"""
+    existing = db.query("SELECT value FROM codex_config WHERE key=?", (key,))
+    if existing:
+        db.execute("UPDATE codex_config SET value=? WHERE key=?", (value, key))
+    else:
+        db.insert("INSERT INTO codex_config(key, value) VALUES (?, ?)", (key, value))
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """启动时向注册中心登记本实例;组长则拉取一次已批准组员并启动定时刷新。"""
-    global _instance_peer_id
+    global _instance_peer_id, _codex_db, _runtime_codex
     settings = get_settings()
+    # 运行时 codex 配置持久化
+    _codex_db = Database(settings.db_path("runtime_config"))
+    _codex_db.migrate("codex_config_v1", _CODEX_CONFIG_SCHEMA)
+    _runtime_codex = _load_codex_config(_codex_db)
     if settings.registry_url:
         url = f"http://{settings.bind_host}:{settings.api_port}"
         try:
@@ -61,6 +94,9 @@ async def lifespan(app: FastAPI):
     yield
     _stop_refresh_loop()
     _instance_peer_id = None
+    if _codex_db is not None:
+        _codex_db.close()
+        _codex_db = None
 
 
 app = FastAPI(title="Task Orchestrator API", lifespan=lifespan)
@@ -107,18 +143,21 @@ def build_registry(model=None, role: str = "leader", dynamic_peers: bool = False
     registry.register(MockCodexAdapter(mock_results={"default": "Codex 模拟执行完成"}), "codex")
 
     # 本机 codex CLI(注册现成 coding agent,capability=code)
-    if settings.codex_cli_enabled:
+    if settings.codex_cli_enabled or _runtime_codex:
         approval_mode = settings.codex_approval_mode
         # sandbox 跟随审批模式:auto 收窄到 workspace-write(避免随意触发 UAC),
         # 仅 full(明确信任)才绕过 sandbox
         sandbox = "danger-full-access" if approval_mode == "full" else "workspace-write"
+        # 运行时配置(界面指定)优先于 .env
+        codex_cmd = _runtime_codex.get("codex_cmd") or settings.codex_cli_cmd
+        codex_home = _runtime_codex.get("codex_home") or settings.codex_cli_home
         adapter = CodexCliAdapter(
             workdir=settings.codex_cli_workdir,
             model=None,  # 用 CODEX_HOME config.toml 的模型,不强制覆盖
             sandbox=sandbox,
             approval_mode=approval_mode,
-            codex_cmd=settings.codex_cli_cmd,
-            codex_home=settings.codex_cli_home,
+            codex_cmd=codex_cmd,
+            codex_home=codex_home,
         )
         registry.register(adapter, "codex_cli")
 
@@ -532,6 +571,50 @@ async def api_approve(body: ApproveBody):
         return {"ok": False, "error": str(exc)}
     finally:
         await client.close()
+
+
+class CodexConfigBody(BaseModel):
+    codex_cmd: str = ""
+    codex_home: str = ""
+
+
+@app.get("/api/config/codex")
+async def api_get_codex_config():
+    """当前 codex 配置:运行时覆盖值优先,否则 .env。"""
+    settings = get_settings()
+    return {
+        "codex_cmd": _runtime_codex.get("codex_cmd") or settings.codex_cli_cmd,
+        "codex_home": _runtime_codex.get("codex_home") or settings.codex_cli_home,
+        "source": "runtime" if _runtime_codex else "env",
+    }
+
+
+@app.put("/api/config/codex")
+async def api_put_codex_config(body: CodexConfigBody):
+    """保存运行时 codex 配置(界面指定,持久化到 SQLite)。"""
+    global _runtime_codex
+    if _codex_db is None:
+        return {"ok": False, "error": "配置存储未初始化"}
+    _save_codex_config(_codex_db, "codex_cmd", body.codex_cmd.strip())
+    _save_codex_config(_codex_db, "codex_home", body.codex_home.strip())
+    _runtime_codex = _load_codex_config(_codex_db)
+    return {"ok": True, "codex_cmd": _runtime_codex.get("codex_cmd", ""), "codex_home": _runtime_codex.get("codex_home", "")}
+
+
+@app.post("/api/config/codex/verify")
+async def api_verify_codex_config(body: CodexConfigBody):
+    """验证指定 codex 路径是否可用(构造 adapter 检查 is_available)。"""
+    settings = get_settings()
+    adapter = CodexCliAdapter(
+        workdir=settings.codex_cli_workdir,
+        codex_cmd=body.codex_cmd.strip() or _runtime_codex.get("codex_cmd") or settings.codex_cli_cmd,
+        codex_home=body.codex_home.strip() or _runtime_codex.get("codex_home") or settings.codex_cli_home,
+    )
+    return {
+        "ok": adapter.is_available,
+        "codex_cmd": adapter.codex_cmd,
+        "available": adapter.is_available,
+    }
 
 
 if __name__ == "__main__":
