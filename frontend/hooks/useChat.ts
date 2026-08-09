@@ -67,7 +67,6 @@ export function useChat() {
       setError(null);
 
       // 占位 assistant 消息
-      const assistantIdx = messages.length;
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
       let assistantText = "";
@@ -161,7 +160,6 @@ export function useChat() {
       } finally {
         setStreaming(false);
       }
-      void assistantIdx;
     },
     [messages.length, streaming],
   );

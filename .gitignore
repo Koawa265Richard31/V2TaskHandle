@@ -16,9 +16,8 @@ venv/
 frontend/node_modules/
 frontend/.next/
 frontend/out/
-frontend-member/node_modules/
-frontend-member/.next/
-frontend-member/out/
+frontend/dist/
+*.tsbuildinfo
 
 # Electron 桌面客户端
 node_modules/
