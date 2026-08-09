@@ -18,6 +18,7 @@ from task_orchestrator.adapters.a2a_adapter import A2AAdapter
 from task_orchestrator.adapters.codex_adapter import MockCodexAdapter
 from task_orchestrator.adapters.codex_cli_adapter import CodexCliAdapter
 from task_orchestrator.adapters.local_adapter import LocalAdapter
+from task_orchestrator.adapters.mcp_adapter import McpAgentAdapter
 from task_orchestrator.adapters.retrieval_adapter import RetrievalAdapter
 from task_orchestrator.common.config import get_settings
 from task_orchestrator.common.db import Database
@@ -45,10 +46,26 @@ _refresh_task: asyncio.Task | None = None
 _runtime_codex: dict[str, str] = {}
 _codex_db: Database | None = None
 
+# 运行时外部 Agent 配置(用户通过界面动态注册,SQLite 持久化)
+_runtime_external_agents: list[dict] = []
+_external_agents_db: Database | None = None
+
 _CODEX_CONFIG_SCHEMA = [
     "CREATE TABLE IF NOT EXISTS codex_config ("
     "  key TEXT PRIMARY KEY,"
     "  value TEXT NOT NULL"
+    ")",
+]
+
+_EXTERNAL_AGENTS_SCHEMA = [
+    "CREATE TABLE IF NOT EXISTS external_agents ("
+    "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+    "  name TEXT NOT NULL UNIQUE,"
+    "  base_url TEXT NOT NULL,"
+    "  api_key TEXT NOT NULL DEFAULT '',"
+    "  capability TEXT NOT NULL DEFAULT 'retrieve',"
+    "  agent_type TEXT NOT NULL DEFAULT 'retrieval',"
+    "  created_at TEXT NOT NULL DEFAULT (datetime('now'))"
     ")",
 ]
 
@@ -70,15 +87,35 @@ def _save_codex_config(db: Database, key: str, value: str) -> None:
         db.insert("INSERT INTO codex_config(key, value) VALUES (?, ?)", (key, value))
 
 
+# ── 运行时外部 Agent 持久化辅助函数 ──────────────────────────
+
+def _load_external_agents(db: Database) -> list[dict]:
+    return db.query("SELECT * FROM external_agents ORDER BY id")
+
+
+def _save_external_agent(db: Database, name: str, base_url: str, api_key: str, capability: str, agent_type: str) -> int:
+    return db.insert(
+        "INSERT INTO external_agents(name, base_url, api_key, capability, agent_type) VALUES (?,?,?,?,?)",
+        (name, base_url, api_key, capability, agent_type),
+    )
+
+
+def _delete_external_agent(db: Database, name: str) -> int:
+    return db.execute("DELETE FROM external_agents WHERE name=?", (name,))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """启动时向注册中心登记本实例;组长则拉取一次已批准组员并启动定时刷新。"""
-    global _instance_peer_id, _codex_db, _runtime_codex
+    global _instance_peer_id, _codex_db, _runtime_codex, _external_agents_db, _runtime_external_agents
     settings = get_settings()
-    # 运行时 codex 配置持久化
+    # 运行时配置持久化(codex + 外部 Agent)
     _codex_db = Database(settings.db_path("runtime_config"))
     _codex_db.migrate("codex_config_v1", _CODEX_CONFIG_SCHEMA)
     _runtime_codex = _load_codex_config(_codex_db)
+    _external_agents_db = Database(settings.db_path("runtime_config"))
+    _external_agents_db.migrate("external_agents_v1", _EXTERNAL_AGENTS_SCHEMA)
+    _runtime_external_agents = _load_external_agents(_external_agents_db)
     if settings.registry_url:
         url = f"http://{settings.bind_host}:{settings.api_port}"
         try:
@@ -97,6 +134,9 @@ async def lifespan(app: FastAPI):
     if _codex_db is not None:
         _codex_db.close()
         _codex_db = None
+    if _external_agents_db is not None:
+        _external_agents_db.close()
+        _external_agents_db = None
 
 
 app = FastAPI(title="Task Orchestrator API", lifespan=lifespan)
@@ -171,6 +211,26 @@ def build_registry(model=None, role: str = "leader", dynamic_peers: bool = False
         name = agent_cfg.name or agent_cfg.base_url
         registry.register(adapter, name)
 
+    # 运行时注册的外部 Agent(SQLite 持久化),与 .env 静态配置共存
+    for agent_cfg in _runtime_external_agents:
+        agent_type = agent_cfg.get("agent_type", "retrieval")
+        base_url = agent_cfg.get("base_url", "")
+        api_key = agent_cfg.get("api_key", "")
+        name = agent_cfg.get("name", "") or base_url
+        if agent_type == "mcp":
+            adapter = McpAgentAdapter(
+                base_url=base_url,
+                api_key=api_key,
+                timeout=settings.a2a_timeout,
+            )
+        else:
+            adapter = RetrievalAdapter(
+                base_url=base_url,
+                api_key=api_key,
+                timeout=settings.a2a_timeout,
+            )
+        registry.register(adapter, name)
+
     # 本地工具 Agent(注入 LLM 以便真实执行)
     local = LocalAdapter(
         enabled_tools=settings.local_tool_list or ["shell", "file", "web"],
@@ -195,9 +255,9 @@ async def event_stream(message: str, session_id: str | None, model=None):
     config = {"configurable": {"thread_id": session_id or uuid.uuid4().hex}}
     sid = session_id or config["configurable"]["thread_id"]
 
-    # 对注册的 A2A / retrieval 适配器做异步 connect(连接成功才可用)
+    # 对注册的 A2A / retrieval / mcp 适配器做异步 connect(连接成功才可用)
     for name in list(registry.list_all()):
-        if name["type"] not in ("a2a", "retrieval"):
+        if name["type"] not in ("a2a", "retrieval", "mcp"):
             continue
         adapter = registry.get(name["name"])
         if adapter and hasattr(adapter, "connect") and not adapter.is_available:
@@ -627,3 +687,86 @@ if __name__ == "__main__":
         port=settings.api_port,
         log_level=settings.log_level.lower(),
     )
+
+
+# ── 外部 Agent 运行时注册管理 ──────────────────────────────────
+
+
+class ExternalAgentBody(BaseModel):
+    name: str
+    base_url: str
+    api_key: str = ""
+    capability: str = "retrieve"
+    agent_type: str = "retrieval"  # retrieval | mcp
+
+
+@app.get("/api/external-agents")
+async def api_list_external_agents():
+    """列出所有运行时注册的外部 Agent。"""
+    return _runtime_external_agents
+
+
+@app.post("/api/external-agents")
+async def api_register_external_agent(body: ExternalAgentBody):
+    """注册新的外部 Agent(持久化到 SQLite)。"""
+    global _runtime_external_agents
+    if not body.name.strip():
+        return {"ok": False, "error": "name 不能为空"}
+    if not body.base_url.strip():
+        return {"ok": False, "error": "base_url 不能为空"}
+
+    existing = [a for a in _runtime_external_agents if a["name"] == body.name.strip()]
+    if existing:
+        return {"ok": False, "error": f"Agent '{body.name}' 已存在"}
+
+    if _external_agents_db is None:
+        return {"ok": False, "error": "配置存储未初始化"}
+
+    row_id = _save_external_agent(
+        _external_agents_db,
+        body.name.strip(), body.base_url.strip(),
+        body.api_key.strip(), body.capability.strip(),
+        body.agent_type.strip(),
+    )
+    _runtime_external_agents = _load_external_agents(_external_agents_db)
+    return {"ok": True, "id": row_id, "name": body.name.strip()}
+
+
+@app.delete("/api/external-agents/{name}")
+async def api_delete_external_agent(name: str):
+    """删除运行时注册的外部 Agent。"""
+    global _runtime_external_agents
+    if _external_agents_db is None:
+        return {"ok": False, "error": "配置存储未初始化"}
+    affected = _delete_external_agent(_external_agents_db, name)
+    if affected:
+        _runtime_external_agents = _load_external_agents(_external_agents_db)
+        return {"ok": True}
+    return {"ok": False, "error": f"Agent '{name}' 不存在"}
+
+
+@app.post("/api/external-agents/{name}/verify")
+async def api_verify_external_agent(name: str):
+    """验证指定外部 Agent 的连通性(调 /health 或 MCP initialize + tools/list)。"""
+    cfg = next((a for a in _runtime_external_agents if a["name"] == name), None)
+    if not cfg:
+        return {"ok": False, "error": f"Agent '{name}' 不存在"}
+
+    agent_type = cfg.get("agent_type", "retrieval")
+    if agent_type == "mcp":
+        adapter = McpAgentAdapter(base_url=cfg["base_url"], api_key=cfg.get("api_key", ""))
+    else:
+        adapter = RetrievalAdapter(base_url=cfg["base_url"], api_key=cfg.get("api_key", ""))
+
+    try:
+        available = await adapter.connect()
+        tools = getattr(adapter, "_tools", None) or {}
+        return {
+            "ok": True, "available": available,
+            "agent_type": agent_type,
+            "tools": list(tools.keys()) if isinstance(tools, dict) else [],
+        }
+    except Exception as exc:
+        return {"ok": False, "available": False, "error": str(exc)}
+    finally:
+        await adapter.close()

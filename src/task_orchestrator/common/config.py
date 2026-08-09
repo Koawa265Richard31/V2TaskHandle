@@ -17,11 +17,12 @@ class A2AAgentConfig(BaseSettings):
 
 
 class ExternalAgentConfig(BaseSettings):
-    """单个远端 REST 垂类 Agent(如检索)配置。"""
+    """单个远端 REST 垂类 Agent(如检索/MCP)配置。"""
     name: str = ""
     base_url: str = ""
     api_key: str = ""
     capability: str = "retrieve"
+    agent_type: str = "retrieval"  # retrieval | mcp
 
 
 class Settings(BaseSettings):
@@ -146,6 +147,7 @@ class Settings(BaseSettings):
                 base_url=item.get("base_url", item.get("url", "")),
                 api_key=item.get("api_key", ""),
                 capability=item.get("capability", "retrieve"),
+                agent_type=item.get("agent_type", "retrieval"),
             )
             for item in raw
         ]

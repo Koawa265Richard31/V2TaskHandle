@@ -35,7 +35,7 @@ export function useAgents() {
     refresh();
   }, [refresh]);
 
-  const cloudAgents = agents.filter((a) => a.type === "a2a" || a.type === "retrieval");
+  const cloudAgents = agents.filter((a) => a.type === "a2a" || a.type === "retrieval" || a.type === "mcp");
   const localAgents = agents.filter(
     (a) => a.type === "codex" || a.type === "codex_cli" || a.type === "local",
   );

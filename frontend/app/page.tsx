@@ -12,12 +12,14 @@ import SettingsDrawer from "@/components/SettingsDrawer";
 import { useChat } from "@/hooks/useChat";
 import { useAgents } from "@/hooks/useAgents";
 import { useRegistry } from "@/hooks/useRegistry";
+import { useExternalAgents } from "@/hooks/useExternalAgents";
 import TeamPanel from "@/components/TeamPanel";
 
 export default function HomePage() {
   const { messages, plan, streaming, error, sendMessage, newSession } = useChat();
   const { agents, cloudAgents, localAgents, loading, refresh } = useAgents();
   const registry = useRegistry();
+  const extAgents = useExternalAgents();
   const [activeView, setActiveView] = useState("chat");
   const [theme, setThemeState] = useState<string>("dark");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -73,7 +75,23 @@ export default function HomePage() {
         {activeView === "chat" && (
           <ChatView messages={messages} streaming={streaming} onSend={sendMessage} onNewSession={newSession} />
         )}
-        {activeView === "agents" && <AgentsView agents={agents} loading={loading} onRefresh={refresh} />}
+        {activeView === "agents" && (
+          <AgentsView
+            agents={agents}
+            loading={loading}
+            onRefresh={refresh}
+            externalAgents={{
+              extAgents: extAgents.agents,
+              extLoading: extAgents.loading,
+              extSaving: extAgents.saving,
+              extVerifyResult: extAgents.verifyResult,
+              extMessage: extAgents.message,
+              onExtRegister: extAgents.register,
+              onExtRemove: extAgents.remove,
+              onExtVerify: extAgents.verify,
+            }}
+          />
+        )}
         {activeView === "history" && (
           <div className="flex flex-1 flex-col items-center justify-center p-6">
             <h2 className="font-headline-md text-headline-md text-on-surface">History</h2>
