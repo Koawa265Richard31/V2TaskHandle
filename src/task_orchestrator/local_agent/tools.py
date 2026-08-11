@@ -223,7 +223,19 @@ def build_local_agent(
     tools: list[BaseTool] = [
         t for name, t in available.items() if name in enabled_tools or "file" in name and ("file_read" if name == "file_read" else True)
     ]
-    # 简化:按工具名精确匹配
-    tools = [available.get(t) for t in enabled_tools if t in available]
-    tools = [t for t in tools if t is not None]
+    # 简化:按工具名精确匹配,同时处理 "file" 展开为 file_read + file_write
+    resolved: list[BaseTool] = []
+    for t in enabled_tools:
+        if t == "file":
+            for n in ["file_read", "file_write"]:
+                tool_obj = available.get(n)
+                if tool_obj and tool_obj not in resolved:
+                    resolved.append(tool_obj)
+        elif t in available:
+            resolved.append(available[t])
+        elif f"{t}" in available:
+            resolved.append(available[f"{t}"])
+        elif f"file_{t}" in available:
+            resolved.append(available[f"file_{t}"])
+    tools = [t for t in resolved if t is not None]
     return build_tool_agent(model, tools, _system_prompt, checkpointer=checkpointer)

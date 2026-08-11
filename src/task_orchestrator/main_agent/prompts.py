@@ -12,7 +12,9 @@ PLAN_PROMPT = """你是任务规划专家。根据用户的目标和上下文，
 
 ## 可用 Agent 类型
 - **codex**: 本地代码执行 Agent，可以读写文件、执行 shell 命令、操作 git
+- **codex_cli**: 本机 codex CLI Agent，capability=code，智能编程助手，可理解大代码库
 - **a2a**: 云端 Agent（通过 A2A 协议），适合查询任务列表、搜索知识库等
+- **retrieval**: 远端知识检索 Agent，可以查询企业知识库、文档库、数据库等
 - **local**: 本地工具 Agent，适合发邮件、查网页、文件操作等非代码工具
 
 ## 规划规则
@@ -40,7 +42,9 @@ PLAN_PROMPT = """你是任务规划专家。根据用户的目标和上下文，
 
 可用 agent_target 值:
 - codex: "workspace_write", "read_only", "full_access"
+- codex_cli: 空字符串或 codex CLI 的 sandbox 名
 - a2a: A2A Agent 的完整 URL (如 http://127.0.0.1:10001)
+- retrieval: 远端检索 Agent 的注册名（如 "ragent"）
 - local: "shell", "email", "file", "web"
 """
 
@@ -60,8 +64,9 @@ MEMBER_CAPABILITY_NOTE = (
     "你是团队中的**组员个人 Agent**。你收到的消息是组长下发的子任务。\n"
     "规则:\n"
     "1. 你**没有**向任何其他 Agent 下发任务的权限(不计划 agent_type='a2a' 的子任务)。\n"
-    "2. 只能执行本地可完成的子任务:设置提醒(本地工具)、文件操作、开发任务(本地代码)。\n"
-    "3. 任务执行完成后,使用 email_send 工具向组长邮箱发送任务报告书。\n"
+    "2. 只能执行本地可完成的子任务:设置提醒(本地工具)、文件操作(retrieval 检索或 local)、开发任务(本地代码)。\n"
+    "3. 你可以使用 retrieval 类型查询知识库,检索到的信息可用于后续任务。\n"
+    "4. 任务执行完成后,使用 email_send 工具向组长邮箱发送任务报告书。\n"
 )
 
 
