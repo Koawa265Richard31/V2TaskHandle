@@ -4,15 +4,22 @@
 import { useEffect, useRef, useState } from "react";
 import type { AgentInfo } from "@/hooks/useAgents";
 
+interface Identity {
+  name: string;
+  role: "leader" | "member";
+}
+
 interface SidebarProps {
   agents: AgentInfo[];
   cloudAgents: AgentInfo[];
   localAgents: AgentInfo[];
   activeView: string;
   collapsed: boolean;
+  identity: Identity | null;
   onToggleCollapsed: () => void;
   onSwitchView: (view: string) => void;
   onOpenSettings: () => void;
+  onSwitchIdentity?: () => void;
 }
 
 function StatusDot({ status }: { status?: string }) {
@@ -36,9 +43,11 @@ export default function Sidebar({
   localAgents,
   activeView,
   collapsed,
+  identity,
   onToggleCollapsed,
   onSwitchView,
   onOpenSettings,
+  onSwitchIdentity,
 }: SidebarProps) {
   const [agentsOpen, setAgentsOpen] = useState(false);
   const [cloudOpen, setCloudOpen] = useState(false);
@@ -252,7 +261,9 @@ export default function Sidebar({
           </div>
           {!collapsed && (
             <>
-              <span className="truncate text-xs text-on-surface-variant">User</span>
+              <span className="truncate text-xs text-on-surface-variant">
+                {identity?.name || "User"}
+              </span>
               <span
                 className="material-symbols-outlined ml-auto text-[14px] text-on-surface-variant transition-transform"
                 style={{ transform: userMenuOpen ? "rotate(180deg)" : "" }}
@@ -282,11 +293,22 @@ export default function Sidebar({
                   </svg>
                 </div>
                 <div>
-                  <div className="text-sm font-medium text-on-surface">User</div>
-                  <div className="text-xs text-on-surface-variant">本地组长实例</div>
+                  <div className="text-sm font-medium text-on-surface">{identity?.name || "User"}</div>
+                  <div className="text-xs text-on-surface-variant">
+                    {identity?.role === "leader" ? "组长" : identity?.role === "member" ? "组员" : "本地实例"}
+                  </div>
                 </div>
               </div>
             </div>
+            {onSwitchIdentity && (
+              <button
+                onClick={() => { onSwitchIdentity(); setUserMenuOpen(false); }}
+                className="flex w-full cursor-pointer items-center gap-2 px-4 py-2.5 text-left text-sm text-on-surface-variant transition-colors hover:bg-surface-variant/10"
+              >
+                <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
+                切换身份
+              </button>
+            )}
             <button
               onClick={onOpenSettings}
               className="flex w-full cursor-pointer items-center gap-2 px-4 py-2.5 text-left text-sm text-on-surface-variant transition-colors hover:bg-surface-variant/10"

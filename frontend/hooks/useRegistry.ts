@@ -37,6 +37,8 @@ export interface RegistryStatus {
 export function useRegistry() {
   const [status, setStatus] = useState<RegistryStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [inviteCode, setInviteCode] = useState<string>("");
+  const [inviteCodeLoading, setInviteCodeLoading] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -95,5 +97,44 @@ export function useRegistry() {
     [refresh],
   );
 
-  return { status, loading, refresh, approve, join };
+  const joinByCode = useCallback(
+    async (inviteCode: string): Promise<{ ok: boolean; error?: string; leader_id?: number; leader_name?: string }> => {
+      try {
+        const r = await fetch(`${API_URL}/api/join-by-code`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ invite_code: inviteCode }),
+        });
+        const data = await r.json();
+        await refresh();
+        return data;
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : String(e) };
+      }
+    },
+    [refresh],
+  );
+
+  const fetchInviteCode = useCallback(async () => {
+    setInviteCodeLoading(true);
+    try {
+      const r = await fetch(`${API_URL}/api/team/invite-code`);
+      const data = await r.json();
+      setInviteCode(data.invite_code || "");
+    } catch { /* ignore */ }
+    finally { setInviteCodeLoading(false); }
+  }, []);
+
+  const regenerateInviteCode = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_URL}/api/team/invite-code/regenerate`, { method: "POST" });
+      const data = await r.json();
+      if (data.ok) setInviteCode(data.invite_code);
+      return data.ok;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  return { status, loading, inviteCode, inviteCodeLoading, refresh, approve, join, joinByCode, fetchInviteCode, regenerateInviteCode };
 }

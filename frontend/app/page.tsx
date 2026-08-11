@@ -9,17 +9,40 @@ import ChatView from "@/components/ChatView";
 import AgentsView from "@/components/AgentsView";
 import DagPanel from "@/components/DagPanel";
 import SettingsDrawer from "@/components/SettingsDrawer";
+import IdentityModal from "@/components/IdentityModal";
 import { useChat } from "@/hooks/useChat";
 import { useAgents } from "@/hooks/useAgents";
 import { useRegistry } from "@/hooks/useRegistry";
 import { useExternalAgents } from "@/hooks/useExternalAgents";
 import TeamPanel from "@/components/TeamPanel";
 
+const IDENTITY_KEY = "task_orchestrator_identity";
+
+interface Identity {
+  name: string;
+  role: "leader" | "member";
+}
+
+function loadIdentity(): Identity | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(IDENTITY_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return null;
+}
+
+function saveIdentity(ident: Identity) {
+  localStorage.setItem(IDENTITY_KEY, JSON.stringify(ident));
+}
+
 export default function HomePage() {
   const { messages, plan, streaming, error, sendMessage, newSession } = useChat();
   const { agents, cloudAgents, localAgents, loading, refresh } = useAgents();
   const registry = useRegistry();
   const extAgents = useExternalAgents();
+  const [identity, setIdentity] = useState<Identity | null>(null);
+  const [showIdentityModal, setShowIdentityModal] = useState(false);
   const [activeView, setActiveView] = useState("chat");
   const [theme, setThemeState] = useState<string>("dark");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -27,12 +50,50 @@ export default function HomePage() {
   const [dagCollapsed, setDagCollapsed] = useState(false);
   const mainOffset = collapsed ? 60 : 260;
 
+  // 加载身份:localStorage → 无则弹模态框
+  useEffect(() => {
+    const stored = loadIdentity();
+    if (stored && stored.name) {
+      setIdentity(stored);
+      // 同步后端
+      fetch("/api/identity", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(stored),
+      }).catch(() => {});
+    } else {
+      setShowIdentityModal(true);
+    }
+  }, []);
+
   // 初始化主题
   useEffect(() => {
     const root = document.documentElement;
     const cur = root.getAttribute("data-theme") || "dark";
     setThemeState(cur);
     root.classList.toggle("dark", cur === "dark");
+  }, []);
+
+  const handleIdentityConfirm = useCallback(async (ident: Identity) => {
+    saveIdentity(ident);
+    setIdentity(ident);
+    setShowIdentityModal(false);
+    try {
+      const r = await fetch("/api/identity", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ident),
+      });
+      const data = await r.json();
+      if (data.role_changed) {
+        // 角色变了需要通知 Electron 重启后端
+        if ((window as any).__switchRole) {
+          (window as any).__switchRole?.(ident.role);
+        }
+      }
+    } catch { /* ignore */ }
+    // 刷新 registry hook 的状态
+    window.location.reload();
   }, []);
 
   const setTheme = useCallback((t: string) => {
@@ -55,18 +116,32 @@ export default function HomePage() {
       <GradientWaves />
       <div className="bg-ripple" />
 
+      {showIdentityModal && (
+        <IdentityModal
+          initial={{ name: identity?.name || "", role: identity?.role || "leader" }}
+          onConfirm={handleIdentityConfirm}
+        />
+      )}
+
       <Sidebar
         agents={agents}
         cloudAgents={cloudAgents}
         localAgents={localAgents}
         activeView={activeView}
         collapsed={collapsed}
+        identity={identity}
         onToggleCollapsed={() => setCollapsed(!collapsed)}
         onSwitchView={handleSwitchView}
         onOpenSettings={() => setSettingsOpen(true)}
+        onSwitchIdentity={() => setShowIdentityModal(true)}
       />
 
-      <Header onToggleTheme={toggleTheme} collapsed={collapsed} />
+      <Header
+        identity={identity}
+        onToggleTheme={toggleTheme}
+        collapsed={collapsed}
+        onSwitchIdentity={() => setShowIdentityModal(true)}
+      />
 
       <main
         className="relative z-10 flex h-[calc(100vh-64px)]"
@@ -102,8 +177,13 @@ export default function HomePage() {
           <TeamPanel
             status={registry.status}
             loading={registry.loading}
+            inviteCode={registry.inviteCode}
+            inviteCodeLoading={registry.inviteCodeLoading}
             onApprove={registry.approve}
             onJoin={registry.join}
+            onJoinByCode={registry.joinByCode}
+            onFetchInviteCode={registry.fetchInviteCode}
+            onRegenerateInviteCode={registry.regenerateInviteCode}
           />
         )}
 

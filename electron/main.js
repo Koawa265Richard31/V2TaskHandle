@@ -90,10 +90,17 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-// 启动时自动拉起后端(默认组长角色,可用命令行 --role=leader|member 覆盖)
+// 启动时自动拉起后端,角色由前端身份设定(通过 IPC 控制)
 app.whenReady().then(async () => {
-  const argRole = process.argv.find((a) => a.startsWith("--role="));
-  const role = argRole ? argRole.split("=")[1] : process.env.PTA_DEFAULT_ROLE || "leader";
+  const role = process.env.PTA_DEFAULT_ROLE || "member";
   await backend.start(role);
   broadcastStatus();
+
+  // IPC:前端身份确认后可能要求切换角色
+  ipcMain.handle("backend:switch-role", async (_e, role) => {
+    if (role !== "leader" && role !== "member") return { ok: false, error: "无效角色" };
+    const ok = await backend.start(role);
+    broadcastStatus();
+    return { ok, role, port: backend.port() };
+  });
 });

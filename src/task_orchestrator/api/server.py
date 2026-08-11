@@ -615,6 +615,105 @@ class ApproveBody(BaseModel):
     approve: bool = True
 
 
+# ── 身份管理 ─────────────────────────────────────────
+
+
+class IdentityBody(BaseModel):
+    name: str
+    role: str = "member"  # leader | member
+
+
+@app.get("/api/identity")
+async def api_get_identity():
+    """返回当前实例的身份信息。"""
+    settings = get_settings()
+    return {
+        "name": settings.instance_name,
+        "role": settings.a2a_role,
+        "peer_id": _instance_peer_id,
+        "registry_url": settings.registry_url,
+    }
+
+
+@app.put("/api/identity")
+async def api_put_identity(body: IdentityBody):
+    """更新实例名和角色。角色切换需告知前端重启后端。"""
+    settings = get_settings()
+    old_role = settings.a2a_role
+    settings.instance_name = body.name.strip() or settings.instance_name
+    settings.a2a_role = body.role if body.role in ("leader", "member") else settings.a2a_role
+    return {
+        "ok": True,
+        "name": settings.instance_name,
+        "role": settings.a2a_role,
+        "role_changed": old_role != settings.a2a_role,
+    }
+
+
+# ── 邀请码 ───────────────────────────────────────────
+
+
+@app.get("/api/team/invite-code")
+async def api_get_invite_code():
+    """组长:获取邀请码。非组长返回空。"""
+    settings = get_settings()
+    if settings.a2a_role != "leader" or _instance_peer_id is None:
+        return {"invite_code": "", "error": "仅组长可获取邀请码"}
+    if not settings.registry_url:
+        return {"invite_code": "", "error": "未配置注册中心"}
+    client = RegistryClient(settings.registry_url)
+    try:
+        code = await client.get_invite_code(_instance_peer_id)
+        return {"invite_code": code}
+    except Exception as exc:
+        return {"invite_code": "", "error": str(exc)}
+    finally:
+        await client.close()
+
+
+@app.post("/api/team/invite-code/regenerate")
+async def api_regenerate_invite_code():
+    """组长:重新生成邀请码。"""
+    settings = get_settings()
+    if settings.a2a_role != "leader" or _instance_peer_id is None:
+        return {"ok": False, "error": "仅组长可操作"}
+    if not settings.registry_url:
+        return {"ok": False, "error": "未配置注册中心"}
+    client = RegistryClient(settings.registry_url)
+    try:
+        code = await client.regenerate_invite_code(_instance_peer_id)
+        return {"ok": True, "invite_code": code}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+    finally:
+        await client.close()
+
+
+class JoinByCodeBody(BaseModel):
+    invite_code: str
+
+
+@app.post("/api/join-by-code")
+async def api_join_by_code(body: JoinByCodeBody):
+    """组员:通过邀请码加入组长团队。"""
+    settings = get_settings()
+    if not settings.registry_url:
+        return {"ok": False, "error": "未配置注册中心 (PTA_REGISTRY_URL)"}
+    if _instance_peer_id is None:
+        return {"ok": False, "error": "尚未注册到注册中心"}
+    a2a_url = f"http://{settings.bind_host}:{settings.a2a_port}"
+    client = RegistryClient(settings.registry_url)
+    try:
+        result = await client.join_by_code(
+            _instance_peer_id, settings.instance_name, a2a_url, body.invite_code.strip().upper()
+        )
+        return {"ok": True, **result}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+    finally:
+        await client.close()
+
+
 @app.post("/api/approve")
 async def api_approve(body: ApproveBody):
     """组长:批准/拒绝组员加入申请。"""

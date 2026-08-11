@@ -1,37 +1,63 @@
 "use client";
 
-// 团队协作面板:注册状态 / 待批准申请(组长) / 已加入团队 / 申请状态(组员)
-import { useState } from "react";
+// 团队协作面板:邀请码(组长) / 邀请码加入(组员) / 待批准申请 / 已加入团队
+import { useCallback, useEffect, useState } from "react";
 import type { RegistryStatus } from "@/hooks/useRegistry";
 
 interface TeamPanelProps {
   status: RegistryStatus | null;
   loading: boolean;
+  inviteCode: string;
+  inviteCodeLoading: boolean;
   onApprove: (requestId: number, ok: boolean) => Promise<boolean>;
   onJoin: (leaderId: number) => Promise<{ ok: boolean; error?: string }>;
+  onJoinByCode: (inviteCode: string) => Promise<{ ok: boolean; error?: string; leader_id?: number; leader_name?: string }>;
+  onFetchInviteCode: () => void;
+  onRegenerateInviteCode: () => void;
 }
 
-export default function TeamPanel({ status, loading, onApprove, onJoin }: TeamPanelProps) {
-  const [leaderIdInput, setLeaderIdInput] = useState("");
+export default function TeamPanel({
+  status, loading, inviteCode, inviteCodeLoading,
+  onApprove, onJoin, onJoinByCode,
+  onFetchInviteCode, onRegenerateInviteCode,
+}: TeamPanelProps) {
+  const [inviteInput, setInviteInput] = useState("");
   const [joinMsg, setJoinMsg] = useState<string | null>(null);
+  const [joining, setJoining] = useState(false);
 
   const isLeader = status?.role === "leader";
   const registered = !!status?.registered;
 
-  const handleJoin = async () => {
-    const id = Number(leaderIdInput);
-    if (!id || Number.isNaN(id)) {
-      setJoinMsg("请输入有效的组长 ID");
+  // 组长自动加载邀请码
+  useEffect(() => {
+    if (isLeader && registered) onFetchInviteCode();
+  }, [isLeader, registered, onFetchInviteCode]);
+
+  const handleJoinByCode = useCallback(async () => {
+    const code = inviteInput.trim().toUpperCase();
+    if (!code || code.length < 6) {
+      setJoinMsg("请输入有效的 6 位邀请码");
       return;
     }
     setJoinMsg(null);
-    const res = await onJoin(id);
+    setJoining(true);
+    const res = await onJoinByCode(code);
+    setJoining(false);
     if (res.ok) {
-      setJoinMsg("已发起加入申请");
+      setJoinMsg(`已向组长 "${res.leader_name || "未知"}" 发起加入申请`);
     } else {
-      setJoinMsg(res.error || "申请失败");
+      setJoinMsg(res.error || "加入失败");
     }
-  };
+  }, [inviteInput, onJoinByCode]);
+
+  const handleCopyCode = useCallback(() => {
+    if (inviteCode) {
+      navigator.clipboard.writeText(inviteCode).then(() => {
+        setJoinMsg("邀请码已复制到剪贴板");
+        setTimeout(() => setJoinMsg(null), 2000);
+      });
+    }
+  }, [inviteCode]);
 
   return (
     <div className="relative flex-1 flex-col overflow-y-auto p-6">
@@ -63,6 +89,43 @@ export default function TeamPanel({ status, loading, onApprove, onJoin }: TeamPa
 
         {loading && (
           <div className="py-4 text-center text-sm text-on-surface-variant">加载中…</div>
+        )}
+
+        {/* 组长视角:邀请码卡片 */}
+        {isLeader && registered && (
+          <div className="glass-panel mb-4 rounded-lg p-4">
+            <div className="font-code-sm mb-2 text-[11px] font-medium uppercase tracking-wider text-on-surface-variant">
+              团队邀请码
+            </div>
+            <div className="flex items-center gap-3">
+              <div
+                className="rounded-lg px-5 py-3 font-mono text-2xl font-bold tracking-[0.3em] text-on-surface"
+                style={{ backgroundColor: "var(--surface-container-low)", border: "1px solid var(--border)" }}
+              >
+                {inviteCodeLoading ? "加载中…" : inviteCode || "—"}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <button
+                  onClick={handleCopyCode}
+                  disabled={!inviteCode}
+                  className="cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-30"
+                  style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}
+                >
+                  复制
+                </button>
+                <button
+                  onClick={onRegenerateInviteCode}
+                  className="cursor-pointer rounded-md border px-3 py-1.5 text-xs transition-opacity hover:opacity-80"
+                  style={{ borderColor: "var(--outline-variant)", color: "var(--on-surface-variant)" }}
+                >
+                  重新生成
+                </button>
+              </div>
+            </div>
+            <div className="mt-2 text-xs text-on-surface-variant/60">
+              将邀请码发给组员，组员在下方输入即可加入团队
+            </div>
+          </div>
         )}
 
         {/* 组长视角:待批准申请 */}
@@ -124,29 +187,30 @@ export default function TeamPanel({ status, loading, onApprove, onJoin }: TeamPa
           </div>
         )}
 
-        {/* 组员视角:申请状态 */}
+        {/* 组员视角:邀请码加入 */}
         {!isLeader && (
           <div className="glass-panel rounded-lg p-4">
             <div className="font-code-sm mb-2 text-[11px] font-medium uppercase tracking-wider text-on-surface-variant">
-              加入组长团队
+              通过邀请码加入团队
             </div>
             {status?.registry_url ? (
               <>
                 <div className="mb-2 flex gap-2">
                   <input
-                    value={leaderIdInput}
-                    onChange={(e) => setLeaderIdInput(e.target.value)}
-                    placeholder="组长 ID"
-                    type="number"
-                    className="w-32 rounded-md border px-3 py-2 font-code-sm text-code-sm text-on-surface focus:ring-0"
+                    value={inviteInput}
+                    onChange={(e) => setInviteInput(e.target.value.toUpperCase())}
+                    placeholder="6 位邀请码"
+                    maxLength={6}
+                    className="w-32 rounded-md border px-3 py-2 font-mono text-sm uppercase tracking-widest text-on-surface focus:ring-0"
                     style={{ backgroundColor: "var(--surface-container-low)", borderColor: "var(--border)" }}
                   />
                   <button
-                    onClick={handleJoin}
-                    className="cursor-pointer rounded-md px-3 py-2 text-xs font-medium transition-opacity hover:opacity-80"
+                    onClick={handleJoinByCode}
+                    disabled={joining || inviteInput.trim().length < 6}
+                    className="cursor-pointer rounded-md px-3 py-2 text-xs font-medium transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
                     style={{ backgroundColor: "var(--primary)", color: "var(--on-primary)" }}
                   >
-                    发起申请
+                    {joining ? "申请中…" : "加入团队"}
                   </button>
                 </div>
                 {joinMsg && <div className="text-xs text-on-surface-variant">{joinMsg}</div>}

@@ -1,4 +1,4 @@
-"""PT 注册客户端:向中央注册中心登记/发现/申请/批准。
+"""PT 注册客户端:向中央注册中心登记/发现/申请/批准/邀请码。
 
 组长/组员 PT 实例通过它接入注册中心,实现跨环境发现与权限批准。
 """
@@ -65,6 +65,32 @@ class RegistryClient:
         """查询已注册的 PT 列表。"""
         params = {"role": role} if role else {}
         r = await self._httpx.get(f"{self.base_url}/api/peers", params=params)
+        r.raise_for_status()
+        return r.json()
+
+    async def get_invite_code(self, peer_id: int) -> str:
+        """组长查询自己的邀请码。"""
+        r = await self._httpx.get(f"{self.base_url}/api/invite-code", params={"peer_id": peer_id})
+        r.raise_for_status()
+        return r.json()["invite_code"]
+
+    async def regenerate_invite_code(self, peer_id: int) -> str:
+        """组长重新生成邀请码。"""
+        r = await self._httpx.post(
+            f"{self.base_url}/api/invite-code/regenerate",
+            json={"peer_id": peer_id},
+        )
+        r.raise_for_status()
+        return r.json()["invite_code"]
+
+    async def join_by_code(self, peer_id: int, peer_name: str, peer_url: str, invite_code: str
+                           ) -> dict:
+        """组员通过邀请码加入团队,返回 {request_id, leader_id, leader_name}。"""
+        r = await self._httpx.post(
+            f"{self.base_url}/api/join-by-code",
+            json={"peer_id": peer_id, "peer_name": peer_name,
+                  "peer_url": peer_url, "invite_code": invite_code},
+        )
         r.raise_for_status()
         return r.json()
 
