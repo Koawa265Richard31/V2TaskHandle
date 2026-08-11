@@ -108,8 +108,7 @@ class RetrievalAdapter(BaseAdapter):
             data = resp.json()
             content = data.get("content") or data.get("result") or data.get("text")
             return str(content).strip() if content else None
-        except (httpx.TransportError, httpx.HTTPStatusError) as exc:
-            logger.warning("拉取检索任务结果失败", extra={"task_id": external_id, "error": str(exc)})
+        except (httpx.TransportError, httpx.HTTPStatusError):
             return None
 
     async def cancel(self, external_id: str) -> bool:

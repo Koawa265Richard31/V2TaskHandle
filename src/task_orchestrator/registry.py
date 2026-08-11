@@ -58,10 +58,10 @@ class AgentRegistry:
         return result
 
     def agents_summary(self) -> str:
-        """生成 Agent 摘要文本,用于注入 plan 提示词。"""
+        """生成 Agent 摘要文本,用于注入 plan 提示词。包含未连接但已注册的适配器。"""
         lines = []
         for name, adapter in self._adapters.items():
-            status = "可用" if adapter.is_available else "不可用"
+            status = "可用" if adapter.is_available else "未连接"
             caps = f" 能力:{','.join(adapter.capabilities)}" if adapter.capabilities else ""
             lines.append(f"- {name} (type={adapter.agent_type}, {status}{caps})")
         return "\n".join(lines)

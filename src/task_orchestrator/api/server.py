@@ -229,7 +229,28 @@ def build_registry(model=None, role: str = "leader", dynamic_peers: bool = False
                 api_key=api_key,
                 timeout=settings.a2a_timeout,
             )
+        # 同步注册(异步 connect 在 _connect_external helper 中)
         registry.register(adapter, name)
+
+    def _connect_external(registry: AgentRegistry) -> None:
+        """同步 helper:注册后尝试 connect(create_task 跑,非阻塞)。"""
+        async def _connect():
+            for name in list(registry.list_all()):
+                if name["type"] not in ("retrieval", "mcp"):
+                    continue
+                adapter = registry.get(name["name"])
+                if adapter and hasattr(adapter, "connect") and not adapter.is_available:
+                    try:
+                        await adapter.connect()
+                    except Exception:
+                        pass
+        try:
+            import asyncio
+            asyncio.create_task(_connect())
+        except RuntimeError:
+            pass  # 不在事件循环中,跳过(测试场景)
+
+    _connect_external(registry)
 
     # 本地工具 Agent(注入 LLM 以便真实执行)
     local = LocalAdapter(
@@ -249,19 +270,23 @@ def sse(event: str, data: dict) -> str:
 async def event_stream(message: str, session_id: str | None, model=None):
     model = model or build_chat_model()
     settings = get_settings()
+
+    # 先 build 基础 registry(含未 connect 的 retrieval/mcp),然后 connect,再注入给 graph
     registry = build_registry(model, role=settings.a2a_role, dynamic_peers=(settings.a2a_role == "leader"))
-    graph = build_main_agent(model, registry, role=settings.a2a_role)
 
-    config = {"configurable": {"thread_id": session_id or uuid.uuid4().hex}}
-    sid = session_id or config["configurable"]["thread_id"]
-
-    # 对注册的 A2A / retrieval / mcp 适配器做异步 connect(连接成功才可用)
+    # 对已注册的 retrieval / mcp adapter 做异步 connect(连接成功后 is_available 变 True)
     for name in list(registry.list_all()):
         if name["type"] not in ("a2a", "retrieval", "mcp"):
             continue
         adapter = registry.get(name["name"])
         if adapter and hasattr(adapter, "connect") and not adapter.is_available:
             await adapter.connect()
+            logger.info("Adapter connected", extra={"name": name["name"], "type": name["type"], "available": adapter.is_available})
+
+    graph = build_main_agent(model, registry, role=settings.a2a_role)
+
+    config = {"configurable": {"thread_id": session_id or uuid.uuid4().hex}}
+    sid = session_id or config["configurable"]["thread_id"]
 
     yield sse("message", {"delta": "正在分析你的请求..."})
 
