@@ -233,22 +233,8 @@ def build_registry(model=None, role: str = "leader", dynamic_peers: bool = False
         registry.register(adapter, name)
 
     def _connect_external(registry: AgentRegistry) -> None:
-        """同步 helper:注册后尝试 connect(create_task 跑,非阻塞)。"""
-        async def _connect():
-            for name in list(registry.list_all()):
-                if name["type"] not in ("retrieval", "mcp"):
-                    continue
-                adapter = registry.get(name["name"])
-                if adapter and hasattr(adapter, "connect") and not adapter.is_available:
-                    try:
-                        await adapter.connect()
-                    except Exception:
-                        pass
-        try:
-            import asyncio
-            asyncio.create_task(_connect())
-        except RuntimeError:
-            pass  # 不在事件循环中,跳过(测试场景)
+        """同步 helper:注册后尝试 connect(仅登记,连接在 event_stream 中完成)。"""
+        pass  # 连接在 event_stream 里 await adapter.connect() 完成,同步上下文无法 await
 
     _connect_external(registry)
 
@@ -275,6 +261,7 @@ async def event_stream(message: str, session_id: str | None, model=None):
     registry = build_registry(model, role=settings.a2a_role, dynamic_peers=(settings.a2a_role == "leader"))
 
     # 对已注册的 retrieval / mcp adapter 做异步 connect(连接成功后 is_available 变 True)
+    connect_ok: list[str] = []
     for name in list(registry.list_all()):
         if name["type"] not in ("a2a", "retrieval", "mcp"):
             continue
@@ -282,8 +269,15 @@ async def event_stream(message: str, session_id: str | None, model=None):
         if adapter and hasattr(adapter, "connect") and not adapter.is_available:
             await adapter.connect()
             logger.info("Adapter connected", extra={"name": name["name"], "type": name["type"], "available": adapter.is_available})
+            if adapter.is_available:
+                connect_ok.append(name["name"])
 
-    graph = build_main_agent(model, registry, role=settings.a2a_role)
+    # 构建 extra_context:若 retrieval agent 已连接,明确提示 LLM 使用它
+    extra_context = ""
+    if connect_ok:
+        extra_context = "\n注意:以下 retrieval/mcp agent 已经连接成功可以使用: " + ", ".join(connect_ok)
+
+    graph = build_main_agent(model, registry, role=settings.a2a_role, extra_context=extra_context)
 
     config = {"configurable": {"thread_id": session_id or uuid.uuid4().hex}}
     sid = session_id or config["configurable"]["thread_id"]

@@ -30,13 +30,15 @@ def build_main_agent(
     registry: AgentRegistry | None = None,
     checkpointer=None,
     role: str = "leader",
+    extra_context: str = "",
 ):
     """构建 Main Agent 的完整 StateGraph。
 
     role 决定规划器的能力提示:leader 可向组员下发;member 只能执行本地任务。
+    extra_context 用于在 agents_info 之外注入额外提示(如 retrieval adapter connect 状态更新)。
     """
     graph = StateGraph(MainAgentState)
-    agents_info = registry.agents_summary() if registry else ""
+    agents_info = (registry.agents_summary() if registry else "") + "\n" + extra_context
     if role == "member":
         agents_info = (agents_info + "\n" + MEMBER_CAPABILITY_NOTE).strip() if agents_info else MEMBER_CAPABILITY_NOTE
     else:
