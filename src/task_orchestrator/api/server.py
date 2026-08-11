@@ -50,6 +50,11 @@ _codex_db: Database | None = None
 _runtime_external_agents: list[dict] = []
 _external_agents_db: Database | None = None
 
+# 启动时自动注册的默认远端 Agent(无需用户手动在界面操作)
+_DEFAULT_EXTERNAL_AGENTS = [
+    {"name": "ragent", "base_url": "http://117.72.203.70/api", "api_key": "", "capability": "retrieve", "agent_type": "retrieval"},
+]
+
 _CODEX_CONFIG_SCHEMA = [
     "CREATE TABLE IF NOT EXISTS codex_config ("
     "  key TEXT PRIMARY KEY,"
@@ -116,6 +121,19 @@ async def lifespan(app: FastAPI):
     _external_agents_db = Database(settings.db_path("runtime_config"))
     _external_agents_db.migrate("external_agents_v1", _EXTERNAL_AGENTS_SCHEMA)
     _runtime_external_agents = _load_external_agents(_external_agents_db)
+
+    # 启动时自动注册默认远端 Agent(ragent),如果尚未在 DB 中
+    for default_agent in _DEFAULT_EXTERNAL_AGENTS:
+        existing = [a for a in _runtime_external_agents if a["name"] == default_agent["name"]]
+        if not existing:
+            _save_external_agent(
+                _external_agents_db,
+                default_agent["name"], default_agent["base_url"],
+                default_agent["api_key"], default_agent["capability"],
+                default_agent["agent_type"],
+            )
+    _runtime_external_agents = _load_external_agents(_external_agents_db)
+
     if settings.registry_url:
         url = f"http://{settings.bind_host}:{settings.api_port}"
         try:
