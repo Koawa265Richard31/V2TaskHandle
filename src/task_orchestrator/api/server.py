@@ -290,10 +290,19 @@ async def event_stream(message: str, session_id: str | None, model=None):
             if adapter.is_available:
                 connect_ok.append(name["name"])
 
-    # 构建 extra_context:若 retrieval agent 已连接,明确提示 LLM 使用它
+    # 构建 extra_context:若 retrieval agent 已连接,强制提示 LLM 使用它;
+    # 同时也提示 A2A adapter 已连接可用于下发
     extra_context = ""
     if connect_ok:
-        extra_context = "\n注意:以下 retrieval/mcp agent 已经连接成功可以使用: " + ", ".join(connect_ok)
+        retrieval_names = [n for n in connect_ok if n not in ("a2a",)]
+        a2a_ok = any(name["type"] == "a2a" for name in registry.list_all())
+        parts = []
+        if retrieval_names:
+            parts.append(f"以下 Agent 已连接可用: {', '.join(retrieval_names)}。如要检索信息,必须使用 retrieval 类型")
+        if a2a_ok:
+            parts.append("A2A Agent 也已连接,如要下发组员使用 a2a 类型")
+        if parts:
+            extra_context = "\n" + "。" + "。".join(parts)
 
     graph = build_main_agent(model, registry, role=settings.a2a_role, extra_context=extra_context)
 
