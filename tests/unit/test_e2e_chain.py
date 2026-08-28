@@ -62,6 +62,8 @@ class TestE2EChain:
         model = ScriptedChatModel(responses=[
             ai_text("用户想要分析代码"),
             ai_text(SAMPLE_PLAN),
+            ai_text("规划落地文档"),
+            ai_text("开发落地文档"),
             ai_text("PASS"),
             ai_text("PASS"),
             ai_text("好的,已完成:1)分析了代码结构 2)生成了摘要报告"),
@@ -91,6 +93,8 @@ class TestE2EChain:
                 {"task_id":"1","description":"task one","agent_type":"codex","agent_target":"w","dependencies":[]},
                 {"task_id":"2","description":"task two","agent_type":"local","agent_target":"file","dependencies":["1"]}
             ]"""),
+            ai_text("规划落地文档"),
+            ai_text("开发落地文档"),
             ai_text("PASS"),
             ai_text("PASS"),
             ai_text("done"),

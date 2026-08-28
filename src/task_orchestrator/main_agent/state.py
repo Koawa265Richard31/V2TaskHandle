@@ -67,3 +67,6 @@ class MainAgentState(TypedDict):
     user_request: str
     task_plan: list[dict[str, Any]]
     final_response: str
+    # 项目原型流水线状态:落地文档与整体评估报告(均为 md 文本)
+    documents: dict[str, str]          # {"plan": ..., "dev": ...}
+    evaluation: str                    # 整体评估报告文本

@@ -123,6 +123,8 @@ class TestGraph:
         model = ScriptedChatModel(responses=[
             ai_text("用户想要整理本周工作"),
             ai_text(SAMPLE_PLAN_JSON),
+            ai_text("规划落地文档"),
+            ai_text("开发落地文档"),
             ai_text("好的,我计划:1)分析代码 2)查询任务 3)生成周报并发送"),
         ])
         graph = build_main_agent(model)

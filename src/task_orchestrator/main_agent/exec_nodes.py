@@ -88,6 +88,17 @@ async def dispatch_node(
             status = "ready"
 
         if status == "ready":
+            # 注入已完成依赖的结果作为上下文(implementer 等适配器会用到)
+            deps_done = [
+                t for t in plan
+                if t.get("task_id") in deps and t.get("status") == "completed"
+            ]
+            if deps_done:
+                ctx = "\n\n".join(
+                    f"[{d['task_id']}] {d['description']}\n{d.get('result', '')}"
+                    for d in deps_done
+                )
+                task["context"] = ctx
             adapter = registry.get_by_type(task.get("agent_type", "local"))
             if adapter and adapter.is_available:
                 try:

@@ -25,6 +25,25 @@ class ExternalAgentConfig(BaseSettings):
     agent_type: str = "retrieval"  # retrieval | mcp
 
 
+# 流水线角色(模型分档的档位名)。用户可用这些名字在 PTA_MODEL_TIERS 里配置各自模型。
+TIER_NAMES: tuple[str, ...] = (
+    "planner",      # 强:意图理解 / 任务规划 / 规划落地文档 / 重规划
+    "architect",    # 强:开发落地文档(模块/切片/验收标准)
+    "implementer",  # 便宜:按切片实现(高频、量大)
+    "reviewer",     # 强/中:逐切片审查(PASS/FAIL,限次退回)
+    "evaluator",    # 强:整体评估报告(只对照验收列差距,不下"能否上线"结论)
+)
+
+
+class ModelTierConfig(BaseSettings):
+    """单个角色档位的模型配置。base_url/api_key/temperature 留空则继承 PTA_LLM_*。"""
+    tier: str = ""
+    model: str = ""
+    base_url: str = ""
+    api_key: SecretStr = SecretStr("")
+    temperature: float | None = None
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="PTA_",
@@ -40,6 +59,13 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://api.deepseek.com"
     llm_api_key: SecretStr = SecretStr("")
     llm_temperature: float = 0.0
+
+    # 角色分档模型(模型路由):JSON 数组 [{tier, model, base_url?, api_key?, temperature?}]
+    # tier ∈ planner/architect/implementer/reviewer/evaluator;缺省项回退到 PTA_LLM_* 单模型
+    model_tiers_json: str = Field(
+        default="[]",
+        validation_alias=AliasChoices("PTA_MODEL_TIERS", "PTA_MODEL_TIERS_JSON"),
+    )
 
     # ── A2A 远端 Agent ──────────────────────────────────────────
     a2a_agents_json: str = Field(
@@ -151,6 +177,34 @@ class Settings(BaseSettings):
             )
             for item in raw
         ]
+
+    @property
+    def model_tiers(self) -> dict[str, ModelTierConfig]:
+        """解析 PTA_MODEL_TIERS 为 {tier: ModelTierConfig}。非法项跳过。"""
+        import json
+
+        try:
+            raw = json.loads(self.model_tiers_json)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+        tiers: dict[str, ModelTierConfig] = {}
+        for item in raw:
+            tier = str(item.get("tier", "")).strip()
+            model = str(item.get("model", "")).strip()
+            if not tier or not model:
+                continue
+            tiers[tier] = ModelTierConfig(
+                tier=tier,
+                model=model,
+                base_url=str(item.get("base_url", "")).strip(),
+                api_key=SecretStr(str(item.get("api_key", "") or "")),
+                temperature=item.get("temperature"),
+            )
+        return tiers
+
+    def get_model_tier(self, tier: str) -> ModelTierConfig | None:
+        """取某个角色的档位配置;未配置返回 None(调用方回退 PTA_LLM_*)。"""
+        return self.model_tiers.get(tier)
 
     @property
     def local_tool_list(self) -> list[str]:

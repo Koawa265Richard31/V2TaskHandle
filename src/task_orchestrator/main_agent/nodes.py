@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 from typing import Literal
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -11,6 +12,9 @@ from langgraph.graph import END
 
 from task_orchestrator.main_agent.prompts import (
     UNDERSTAND_PROMPT,
+    PLAN_DOC_PROMPT,
+    DEV_DOC_PROMPT,
+    EVALUATE_PROMPT,
     plan_prompt_with_context,
 )
 from task_orchestrator.main_agent.state import MainAgentState, SubTask
@@ -92,6 +96,108 @@ async def plan_node(
         "task_plan": task_plan,
         "messages": [response],
     }
+
+
+def _task_plan_summary(tasks: list[dict]) -> str:
+    """把任务计划压成给文档/评估环节看的一行一任务摘要。"""
+    lines = []
+    for t in tasks:
+        deps = f" (依赖: {', '.join(t['dependencies'])})" if t.get("dependencies") else ""
+        lines.append(f"{t['task_id']}. [{t.get('agent_type')}] {t['description']}{deps}")
+    return "\n".join(lines)
+
+
+async def docs_node(
+    state: MainAgentState,
+    *,
+    planner_model: BaseChatModel,
+    architect_model: BaseChatModel,
+    project_dir=None,
+) -> dict:
+    """项目原型流水线:基于任务计划生成「规划落地文档」(planner)与「开发落地文档」(architect)。
+
+    文档写入 state["documents"],若有 project_dir 则落盘 plan.md / dev.md。
+    无任务(纯对话)时跳过。
+    """
+    tasks = state.get("task_plan", [])
+    if not tasks:
+        return {}
+    goal = state.get("user_request", "")
+    task_summary = _task_plan_summary(tasks)
+
+    plan_doc = await planner_model.ainvoke([
+        SystemMessage(content=PLAN_DOC_PROMPT),
+        HumanMessage(content=f"用户原始构想:\n{goal}\n\n任务计划:\n{task_summary}"),
+    ])
+    plan_text = str(plan_doc.content).strip()
+
+    dev_doc = await architect_model.ainvoke([
+        SystemMessage(content=DEV_DOC_PROMPT),
+        HumanMessage(
+            content=f"规划落地文档:\n{plan_text}\n\n任务计划:\n{task_summary}"
+        ),
+    ])
+    dev_text = str(dev_doc.content).strip()
+    logger.info("落地文档生成完成", extra={
+        "plan_chars": len(plan_text), "dev_chars": len(dev_text),
+    })
+
+    if project_dir:
+        project_dir = Path(project_dir)
+        project_dir.mkdir(parents=True, exist_ok=True)
+        (project_dir / "plan.md").write_text(plan_text, encoding="utf-8")
+        (project_dir / "dev.md").write_text(dev_text, encoding="utf-8")
+
+    # 注意:文档是"工件",不追加进 messages(避免 A2A 执行器把最后一条消息当答复回传)
+    return {"documents": {"plan": plan_text, "dev": dev_text}}
+
+
+async def evaluate_node(
+    state: MainAgentState, *, model: BaseChatModel, project_dir=None
+) -> dict:
+    """项目原型流水线:整体评估报告(evaluator)。
+
+    只对照验收标准列差距与不确定性,明确不做"能否上线"结论;
+    报告写入 state["evaluation"],有 project_dir 时落盘 evaluation.md。
+    无任务也无文档(纯对话)时跳过。
+    """
+    tasks = state.get("task_plan", [])
+    documents = state.get("documents") or {}
+    if not tasks and not documents:
+        return {}
+
+    dev_doc = documents.get("dev", "")
+    results_lines = []
+    for t in tasks:
+        status = t.get("status", "pending")
+        result = (t.get("result") or "")[:500]
+        results_lines.append(
+            f"- {t['task_id']} [{t.get('agent_type')}] {t['description']}\n"
+            f"  状态:{status} 结果:{result}"
+        )
+    checkpoints = (
+        "开发文档验收标准:\n" + dev_doc
+        if dev_doc else "开发文档未生成(无验收标准可对照)"
+    )
+    prompt = (
+        "用户原始构想:\n" + (state.get("user_request", "") or "") +
+        "\n\n" + checkpoints +
+        "\n\n切片执行结果:\n" + "\n".join(results_lines)
+    )
+    response = await model.ainvoke([
+        SystemMessage(content=EVALUATE_PROMPT),
+        HumanMessage(content=prompt),
+    ])
+    report = str(response.content).strip()
+    logger.info("整体评估报告生成完成", extra={"chars": len(report)})
+
+    if project_dir:
+        project_dir = Path(project_dir)
+        project_dir.mkdir(parents=True, exist_ok=True)
+        (project_dir / "evaluation.md").write_text(report, encoding="utf-8")
+
+    # 评估报告是"工件",不追加进 messages(避免 A2A 执行器把最后一条消息当答复回传)
+    return {"evaluation": report}
 
 
 async def aggregate_node(

@@ -298,6 +298,8 @@ class TestFullGraph:
         model = ScriptedChatModel(responses=[
             ai_text("用户想要分析代码"),
             ai_text('[{"task_id":"1","description":"分析代码","agent_type":"codex","agent_target":"workspace_write","dependencies":[]}]'),
+            ai_text("规划落地文档"),
+            ai_text("开发落地文档"),
             ai_text("PASS"),
             ai_text("好的,已提交代码分析任务"),
         ])

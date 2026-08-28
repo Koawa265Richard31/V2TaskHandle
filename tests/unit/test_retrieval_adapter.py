@@ -167,6 +167,8 @@ class TestRetrievalInGraph:
         model = ScriptedChatModel(responses=[
             ai_text("用户想查糖尿病饮食指南"),
             ai_text('[{"task_id":"1","description":"检索糖尿病饮食指南","agent_type":"retrieval","agent_target":"https://retrieval.example.com","dependencies":[]}]'),
+            ai_text("规划落地文档"),
+            ai_text("开发落地文档"),
             ai_text("PASS"),
             ai_text("已检索到:糖尿病饮食指南"),
         ])

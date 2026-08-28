@@ -17,12 +17,13 @@ from starlette.responses import StreamingResponse
 from task_orchestrator.adapters.a2a_adapter import A2AAdapter
 from task_orchestrator.adapters.codex_adapter import MockCodexAdapter
 from task_orchestrator.adapters.codex_cli_adapter import CodexCliAdapter
+from task_orchestrator.adapters.llm_adapter import LlmAdapter
 from task_orchestrator.adapters.local_adapter import LocalAdapter
 from task_orchestrator.adapters.mcp_adapter import McpAgentAdapter
 from task_orchestrator.adapters.retrieval_adapter import RetrievalAdapter
 from task_orchestrator.common.config import get_settings
 from task_orchestrator.common.db import Database
-from task_orchestrator.common.llm import build_chat_model
+from task_orchestrator.common.llm import build_chat_model, build_tier_models
 from task_orchestrator.main_agent.graph import build_main_agent
 from task_orchestrator.registry import AgentRegistry
 from task_orchestrator.registry_client import RegistryClient, register_instance
@@ -173,13 +174,14 @@ class ChatRequestBody(BaseModel):
 
 
 def build_registry(model=None, role: str = "leader", dynamic_peers: bool = False,
-                   settings=None) -> AgentRegistry:
+                   settings=None, tier_models: dict | None = None) -> AgentRegistry:
     """构造 Agent 注册表。
 
     role=leader:注册 A2A 适配器(可向组员下发任务)。
     role=member:不注册 A2A 适配器(结构上禁止向其他 agent 下发)。
     dynamic_peers=True:从注册中心拉取已批准组员,动态注册为 A2AAdapter(组长)。
     settings 可显式注入(测试用),默认取进程级 get_settings()。
+    tier_models=分层模型字典:implementer 档位交给 LlmAdapter(便宜模型执行切片)。
     """
     settings = settings or get_settings()
     registry = AgentRegistry()
@@ -263,6 +265,14 @@ def build_registry(model=None, role: str = "leader", dynamic_peers: bool = False
     )
     registry.register(local, "local")
 
+    # 项目原型流水线:便宜模型执行切片(implementer)。tier_models 优先,否则回退主模型。
+    implementer_model = None
+    if tier_models:
+        implementer_model = tier_models.get("implementer")
+    elif model is not None:
+        implementer_model = model
+    registry.register(LlmAdapter(model=implementer_model), "implementer")
+
     return registry
 
 
@@ -274,9 +284,14 @@ def sse(event: str, data: dict) -> str:
 async def event_stream(message: str, session_id: str | None, model=None):
     model = model or build_chat_model()
     settings = get_settings()
+    tier_models = build_tier_models(settings)
+    sid = session_id or uuid.uuid4().hex
+    # 项目原型产物落盘目录:data/projects/<session_id>/
+    project_dir = settings.data_dir / "projects" / sid
 
     # 先 build 基础 registry(含未 connect 的 retrieval/mcp),然后 connect,再注入给 graph
-    registry = build_registry(model, role=settings.a2a_role, dynamic_peers=(settings.a2a_role == "leader"))
+    registry = build_registry(model, role=settings.a2a_role, dynamic_peers=(settings.a2a_role == "leader"),
+                              tier_models=tier_models)
 
     # 对已注册的 retrieval / mcp adapter 做异步 connect(连接成功后 is_available 变 True)
     connect_ok: list[str] = []
@@ -304,10 +319,10 @@ async def event_stream(message: str, session_id: str | None, model=None):
         if parts:
             extra_context = "\n" + "。" + "。".join(parts)
 
-    graph = build_main_agent(model, registry, role=settings.a2a_role, extra_context=extra_context)
+    graph = build_main_agent(model, registry, role=settings.a2a_role, extra_context=extra_context,
+                             models=tier_models, project_dir=project_dir)
 
-    config = {"configurable": {"thread_id": session_id or uuid.uuid4().hex}}
-    sid = session_id or config["configurable"]["thread_id"]
+    config = {"configurable": {"thread_id": sid}}
 
     yield sse("message", {"delta": "正在分析你的请求..."})
 
@@ -326,11 +341,24 @@ async def event_stream(message: str, session_id: str | None, model=None):
         ):
             kind = ev["event"]
             name = ev.get("name", "")
-            if kind != "on_chain_end" or name not in ("plan", "dispatch", "monitor", "replan", "aggregate"):
+            if kind != "on_chain_end" or name not in ("plan", "docs", "dispatch", "monitor", "replan", "aggregate", "evaluate"):
                 continue
             output = ev.get("data", {}).get("output", {})
             if not isinstance(output, dict):
                 continue
+
+            # 项目原型流水线:落地文档与整体评估报告事件
+            if name == "docs" and output.get("documents"):
+                yield sse("documents", {
+                    "documents": output["documents"],
+                    "project_dir": str(project_dir),
+                })
+            if name == "evaluate" and output.get("evaluation"):
+                yield sse("evaluate", {
+                    "evaluation": output["evaluation"],
+                    "project_dir": str(project_dir),
+                })
+
             plan = output.get("task_plan") or []
             if not plan:
                 if name == "aggregate" and output.get("final_response"):
@@ -436,6 +464,24 @@ async def chat(body: ChatRequestBody):
 async def list_agents():
     settings = get_settings()
     return build_registry(role=settings.a2a_role, dynamic_peers=(settings.a2a_role == "leader")).list_all()
+
+
+@app.get("/api/tiers")
+async def list_tiers():
+    """当前角色分档模型配置(不返回密钥)。"""
+    settings = get_settings()
+    configured = {}
+    for name, cfg in settings.model_tiers.items():
+        configured[name] = {
+            "model": cfg.model,
+            "base_url": cfg.base_url or settings.llm_base_url,
+        }
+    return {
+        "provider": settings.llm_provider,
+        "default_model": settings.llm_model,
+        "configured": configured,
+        "note": "未配置的档位回退到 default_model(单模型模式)",
+    }
 
 
 @app.get("/api/health")
