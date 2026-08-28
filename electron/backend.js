@@ -10,15 +10,13 @@ const PROJECT_ROOT =
     : path.join(__dirname, "..");
 
 // 可能的 Python 位置(打包后 __dirname 是 resources/app.asar/electron):
-// 1. 项目源目录 .venv(D:\A2A\v2\.venv,开发/本机测试)
+// 1. 项目源目录 .venv(开发/本机测试,相对 PROJECT_ROOT 自动跟随迁移)
 // 2. 打包目录旁(可选)
 // 3. 系统 python
 function findPython() {
   const candidates = [
     path.join(PROJECT_ROOT, ".venv", "Scripts", "python.exe"),
     path.join(PROJECT_ROOT, ".venv", "bin", "python"),
-    // 本机测试:直接指向项目源 .venv(D:\A2A\v2)
-    path.join("D:", "A2A", "v2", ".venv", "Scripts", "python.exe"),
     path.join(process.env.LOCALAPPDATA || "", "Programs", "Python", "Python311", "python.exe"),
     "python",
   ];
